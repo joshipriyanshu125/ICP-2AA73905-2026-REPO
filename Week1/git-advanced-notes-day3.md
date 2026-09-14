@@ -28,6 +28,7 @@ git checkout feature/branch-name
 git rebase main
 ```
 
+
 ---
 
 ## Merge Conflict Resolution

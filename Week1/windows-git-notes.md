@@ -13,6 +13,7 @@ This document covers the core concepts of the Web Development Ecosystem and fund
 - **Server (Backend):** Handles business logic, API requests, and database interactions (Node.js, Express).
 - **Database:** Persists application data (MongoDB, PostgreSQL).
 
+
 ### HTTP/HTTPS Protocol
 - **Methods:** `GET` (retrieve), `POST` (create), `PUT`/`PATCH` (update), `DELETE` (remove).
 - **Status Codes:**
@@ -21,6 +22,7 @@ This document covers the core concepts of the Web Development Ecosystem and fund
   - `400 Bad Request`: Client error.
   - `404 Not Found`: Resource missing.
   - `500 Internal Server Error`: Server failure.
+
 
 ### Browser Rendering Process
 1. **DNS & Connection:** Domain resolution and HTTP GET request.
@@ -31,20 +33,24 @@ This document covers the core concepts of the Web Development Ecosystem and fund
 
 ---
 
+
 ## Core Development Tools
 
 ### 1. HTML5
 - Skeleton and structural markup of web applications.
 - Key elements: `<header>`, `<nav>`, `<main>`, `<section>`, `<footer>`, `<form>`, `<input>`.
 
+
 ### 2. CSS3
 - Visual presentation, layouts, and responsiveness.
 - **Box Model:** Margin -> Border -> Padding -> Content.
 - **Layouts:** Flexbox (1D alignment) and CSS Grid (2D layouts).
 
+
 ### 3. JavaScript (ES6+)
 - Adds interactive logic and dynamic behavior.
 - Core features: `const`/`let`, Arrow functions, DOM Manipulation, Promises, `async`/`await`, Fetch API, `LocalStorage`.
+
 
 ### 4. Git & Terminal Basics
 - **Git:** Distributed Version Control System tracking changes and enabling branching workflows.

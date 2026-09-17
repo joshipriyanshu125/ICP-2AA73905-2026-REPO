@@ -41,6 +41,9 @@ build/Release
 node_modules/
 jspm_packages/
 
+# Transient output created by the test workflow
+.test-dist/
+
 # Snowpack dependency directory (https://snowpack.dev/)
 web_modules/
 

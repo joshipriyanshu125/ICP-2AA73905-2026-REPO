@@ -2,6 +2,7 @@
 
 ## Architecture Overview
 
+
 The application uses a **modular monolith**: one deployable backend application, divided into clear feature modules. This keeps the first version simple to develop and deploy while allowing each module to be separated later if scale requires it.
 
 ```text

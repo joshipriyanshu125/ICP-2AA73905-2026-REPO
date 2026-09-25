@@ -1,6 +1,6 @@
 import { Schema, model } from "mongoose";
 
-export const taskStatuses = ["todo", "in_progress", "in-progress", "blocked", "done", "archived"];
+export const taskStatuses = ["todo", "in_progress", "blocked", "done", "archived"];
 export const taskPriorities = ["low", "medium", "high", "urgent"];
 
 const taskSchema = new Schema(
@@ -24,7 +24,12 @@ const taskSchema = new Schema(
         assigneeId: { type: Schema.Types.ObjectId, ref: "User" },
         dueDate: { type: Date, default: null }
       }
-    ]
+    ],
+    recurrence: {
+      pattern: { type: String, enum: ["daily", "weekly", "monthly", null], default: null },
+      interval: { type: Number, default: 1, min: 1, max: 365 },
+      endDate: { type: Date, default: null }
+    }
   },
   { timestamps: true }
 );
@@ -35,5 +40,6 @@ taskSchema.index({ ownerId: 1, category: 1 });
 taskSchema.index({ ownerId: 1, dueDate: 1 });
 taskSchema.index({ projectId: 1, status: 1, position: 1 });
 taskSchema.index({ workspaceId: 1, status: 1 });
+taskSchema.index({ title: "text", description: "text", category: "text" });
 
 export const Task = model("Task", taskSchema);

@@ -42,8 +42,62 @@ export function initScheduler() {
 
   // 2. Daily Maintenance / Recurring tasks cleanup (Runs every midnight)
   cron.schedule("0 0 * * *", async () => {
-    console.log("[Scheduler] Daily maintenance and recurring task processor ran successfully.");
+    try {
+      console.log("[Scheduler] Running recurring task processor...");
+      const now = new Date();
+
+      // Find tasks with recurrence enabled
+      const recurringTasks = await Task.find({
+        "recurrence.pattern": { $in: ["daily", "weekly", "monthly"] },
+        status: { $in: ["done", "todo"] }
+      });
+
+      for (const task of recurringTasks) {
+        if (!task.dueDate) continue;
+
+        // Check if end date reached
+        if (task.recurrence.endDate && task.recurrence.endDate < now) continue;
+
+        // Calculate next due date
+        const nextDue = new Date(task.dueDate);
+        const interval = task.recurrence.interval || 1;
+
+        if (task.recurrence.pattern === "daily") {
+          nextDue.setDate(nextDue.getDate() + interval);
+        } else if (task.recurrence.pattern === "weekly") {
+          nextDue.setDate(nextDue.getDate() + 7 * interval);
+        } else if (task.recurrence.pattern === "monthly") {
+          nextDue.setMonth(nextDue.getMonth() + interval);
+        }
+
+        // If completed or past due, spawn next task occurrence or reset
+        if (task.status === "done" && nextDue > now) {
+          await Task.create({
+            title: task.title,
+            description: task.description,
+            priority: task.priority,
+            category: task.category,
+            status: "todo",
+            workspaceId: task.workspaceId,
+            projectId: task.projectId,
+            ownerId: task.ownerId,
+            assigneeId: task.assigneeId,
+            labels: task.labels,
+            dueDate: nextDue,
+            recurrence: task.recurrence
+          });
+
+          // Disable recurrence on the old finished task so it won't duplicate again
+          task.recurrence = { pattern: null };
+          await task.save();
+        }
+      }
+      console.log("[Scheduler] Daily maintenance and recurring task processor completed.");
+    } catch (error) {
+      console.error("[Scheduler Error] Recurring task job failed:", error.message);
+    }
   });
 
   console.log("Background Scheduler initialized (Task Reminders & Cron jobs active)");
 }
+

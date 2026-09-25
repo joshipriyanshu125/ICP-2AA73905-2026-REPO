@@ -70,11 +70,21 @@ teamRouter.get("/:id", async (req, res, next) => {
 teamRouter.patch("/:id", async (req, res, next) => {
   try {
     if (!Types.ObjectId.isValid(req.params.id)) return res.status(400).json({ message: "Invalid team ID." });
+    const team = await Team.findById(req.params.id);
+    if (!team) return res.status(404).json({ message: "Team not found." });
+
+    const member = await WorkspaceMember.findOne({
+      workspaceId: team.workspaceId,
+      userId: req.userId,
+      role: { $in: ["owner", "admin"] }
+    });
+    const isLead = team.leadId?.toString() === req.userId.toString();
+    if (!member && !isLead) return res.status(403).json({ message: "Only team lead or workspace admins can update team." });
+
     const input = z.object({ name: z.string().trim().min(2).max(80).optional(), description: z.string().trim().max(300).optional(), leadId: z.string().refine(Types.ObjectId.isValid).optional() }).parse(req.body);
 
-    const team = await Team.findByIdAndUpdate(req.params.id, { $set: input }, { new: true });
-    if (!team) return res.status(404).json({ message: "Team not found." });
-    return res.json({ team });
+    const updated = await Team.findByIdAndUpdate(req.params.id, { $set: input }, { new: true });
+    return res.json({ team: updated });
   } catch (error) {
     return next(error);
   }
@@ -84,10 +94,20 @@ teamRouter.patch("/:id", async (req, res, next) => {
 teamRouter.delete("/:id", async (req, res, next) => {
   try {
     if (!Types.ObjectId.isValid(req.params.id)) return res.status(400).json({ message: "Invalid team ID." });
-    const team = await Team.findByIdAndDelete(req.params.id);
+    const team = await Team.findById(req.params.id);
     if (!team) return res.status(404).json({ message: "Team not found." });
+
+    const member = await WorkspaceMember.findOne({
+      workspaceId: team.workspaceId,
+      userId: req.userId,
+      role: { $in: ["owner", "admin"] }
+    });
+    if (!member) return res.status(403).json({ message: "Only workspace admins or owners can delete teams." });
+
+    await Team.findByIdAndDelete(req.params.id);
     return res.status(204).send();
   } catch (error) {
     return next(error);
   }
 });
+

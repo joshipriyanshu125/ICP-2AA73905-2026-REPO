@@ -7,6 +7,8 @@ import { UserRole } from "../models/UserRole.js";
 import { Session } from "../models/Session.js";
 import { requireAuth } from "../middleware/auth.js";
 import { createToken, createRefreshToken, verifyToken } from "../utils/token.js";
+import { sendWelcomeEmail, sendPasswordResetEmail } from "../services/email.js";
+import { config } from "../config.js";
 
 const credentials = z.object({ email: z.string().trim().email().max(254), password: z.string().min(8).max(128) });
 const signUp = credentials.extend({ name: z.string().trim().min(2).max(80) });
@@ -25,6 +27,9 @@ authRouter.post("/signup", async (req, res, next) => {
       passwordHash: await bcrypt.hash(input.password, 12)
     });
     await UserRole.create({ userId: user._id, role: "user" });
+
+    // Send welcome email (asynchronous / non-blocking)
+    sendWelcomeEmail(user).catch((err) => console.log("Welcome email error:", err.message));
 
     const token = createToken(user._id.toString());
     const refreshToken = createRefreshToken(user._id.toString());
@@ -121,9 +126,12 @@ authRouter.post("/forgot-password", async (req, res, next) => {
     user.resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hour
     await user.save();
 
+    // Send reset email
+    sendPasswordResetEmail(user, resetToken).catch((err) => console.log("Password reset email error:", err.message));
+
     return res.json({
       message: "If an account with that email exists, password reset instructions have been sent.",
-      resetToken // Returned in development for easy testing
+      ...(config.nodeEnv === "development" ? { resetToken } : {})
     });
   } catch (error) {
     return next(error);

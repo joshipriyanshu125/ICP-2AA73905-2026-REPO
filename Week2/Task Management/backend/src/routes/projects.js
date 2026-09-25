@@ -3,6 +3,10 @@ import { Types } from "mongoose";
 import { z } from "zod";
 import { Project, projectStatuses } from "../models/Project.js";
 import { WorkspaceMember } from "../models/WorkspaceMember.js";
+import { Task } from "../models/Task.js";
+import { Activity } from "../models/Activity.js";
+import { Comment } from "../models/Comment.js";
+import { Attachment } from "../models/Attachment.js";
 import { requireAuth } from "../middleware/auth.js";
 
 const projectInput = z.object({
@@ -25,7 +29,11 @@ projectRouter.get("/", async (req, res, next) => {
   try {
     const { workspaceId, status, teamId } = req.query;
     const filter = {};
-    if (workspaceId && Types.ObjectId.isValid(workspaceId)) filter.workspaceId = workspaceId;
+    if (workspaceId && Types.ObjectId.isValid(workspaceId)) {
+      const isMember = await WorkspaceMember.findOne({ workspaceId, userId: req.userId, status: "active" });
+      if (!isMember) return res.status(403).json({ message: "Access denied to this workspace." });
+      filter.workspaceId = workspaceId;
+    }
     if (teamId && Types.ObjectId.isValid(teamId)) filter.teamId = teamId;
     if (status) filter.status = status;
 
@@ -63,6 +71,10 @@ projectRouter.get("/:id", async (req, res, next) => {
     if (!Types.ObjectId.isValid(req.params.id)) return res.status(400).json({ message: "Invalid project ID." });
     const project = await Project.findById(req.params.id).populate("ownerId", "name email avatarUrl").populate("teamId", "name");
     if (!project) return res.status(404).json({ message: "Project not found." });
+
+    const member = await WorkspaceMember.findOne({ workspaceId: project.workspaceId, userId: req.userId, status: "active" });
+    if (!member) return res.status(403).json({ message: "Access denied to this project." });
+
     return res.json({ project });
   } catch (error) {
     return next(error);
@@ -73,9 +85,19 @@ projectRouter.get("/:id", async (req, res, next) => {
 projectRouter.patch("/:id", async (req, res, next) => {
   try {
     if (!Types.ObjectId.isValid(req.params.id)) return res.status(400).json({ message: "Invalid project ID." });
+    const existing = await Project.findById(req.params.id);
+    if (!existing) return res.status(404).json({ message: "Project not found." });
+
+    const member = await WorkspaceMember.findOne({
+      workspaceId: existing.workspaceId,
+      userId: req.userId,
+      role: { $in: ["owner", "admin"] }
+    });
+    const isOwner = existing.ownerId.toString() === req.userId.toString();
+    if (!member && !isOwner) return res.status(403).json({ message: "Only project owner or workspace admins can update project." });
+
     const input = projectInput.partial().parse(req.body);
     const project = await Project.findByIdAndUpdate(req.params.id, { $set: input }, { new: true });
-    if (!project) return res.status(404).json({ message: "Project not found." });
     return res.json({ project });
   } catch (error) {
     return next(error);
@@ -106,14 +128,35 @@ projectRouter.patch("/:id/restore", async (req, res, next) => {
   }
 });
 
-// Delete project
+// Delete project (with cascade task cleanup)
 projectRouter.delete("/:id", async (req, res, next) => {
   try {
     if (!Types.ObjectId.isValid(req.params.id)) return res.status(400).json({ message: "Invalid project ID." });
-    const project = await Project.findByIdAndDelete(req.params.id);
-    if (!project) return res.status(404).json({ message: "Project not found." });
+    const existing = await Project.findById(req.params.id);
+    if (!existing) return res.status(404).json({ message: "Project not found." });
+
+    const member = await WorkspaceMember.findOne({
+      workspaceId: existing.workspaceId,
+      userId: req.userId,
+      role: { $in: ["owner", "admin"] }
+    });
+    const isOwner = existing.ownerId.toString() === req.userId.toString();
+    if (!member && !isOwner) return res.status(403).json({ message: "Permission denied to delete project." });
+
+    const tasks = await Task.find({ projectId: req.params.id }).select("_id");
+    const taskIds = tasks.map((t) => t._id);
+
+    await Promise.all([
+      Project.findByIdAndDelete(req.params.id),
+      Task.deleteMany({ projectId: req.params.id }),
+      Comment.deleteMany({ taskId: { $in: taskIds } }),
+      Attachment.deleteMany({ taskId: { $in: taskIds } }),
+      Activity.deleteMany({ taskId: { $in: taskIds } })
+    ]);
+
     return res.status(204).send();
   } catch (error) {
     return next(error);
   }
 });
+

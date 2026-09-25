@@ -15,7 +15,8 @@ const userSchema = new Schema(
     isEmailVerified: { type: Boolean, default: false },
     resetPasswordToken: { type: String, select: false },
     resetPasswordExpires: { type: Date, select: false },
-    isDeleted: { type: Boolean, default: false }
+    isDeleted: { type: Boolean, default: false },
+    pushSubscription: { type: Object, default: null }
   },
   { timestamps: true }
 );

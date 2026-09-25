@@ -20,5 +20,6 @@ const projectSchema = new Schema(
 
 projectSchema.index({ workspaceId: 1, name: 1 });
 projectSchema.index({ workspaceId: 1, status: 1 });
+projectSchema.index({ name: "text", description: "text" });
 
 export const Project = model("Project", projectSchema);

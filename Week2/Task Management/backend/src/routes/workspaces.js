@@ -4,7 +4,13 @@ import { z } from "zod";
 import { Workspace } from "../models/Workspace.js";
 import { WorkspaceMember, workspaceMemberRoles } from "../models/WorkspaceMember.js";
 import { User } from "../models/User.js";
+import { Project } from "../models/Project.js";
+import { Task } from "../models/Task.js";
+import { Team } from "../models/Team.js";
+import { Label } from "../models/Label.js";
+import { Notification } from "../models/Notification.js";
 import { requireAuth } from "../middleware/auth.js";
+import { eventBus } from "../services/events.js";
 
 const workspaceInput = z.object({
   name: z.string().trim().min(2).max(100),
@@ -91,15 +97,23 @@ workspaceRouter.patch("/:id", async (req, res, next) => {
   }
 });
 
-// Delete workspace (owner only)
+// Delete workspace (owner only - with full cascade cleanup)
 workspaceRouter.delete("/:id", async (req, res, next) => {
   try {
     if (!Types.ObjectId.isValid(req.params.id)) return res.status(400).json({ message: "Invalid workspace ID." });
     const workspace = await Workspace.findOne({ _id: req.params.id, ownerId: req.userId });
     if (!workspace) return res.status(403).json({ message: "Only the workspace owner can delete it." });
 
-    await Workspace.findByIdAndDelete(req.params.id);
-    await WorkspaceMember.deleteMany({ workspaceId: req.params.id });
+    await Promise.all([
+      Workspace.findByIdAndDelete(req.params.id),
+      WorkspaceMember.deleteMany({ workspaceId: req.params.id }),
+      Project.deleteMany({ workspaceId: req.params.id }),
+      Task.deleteMany({ workspaceId: req.params.id }),
+      Team.deleteMany({ workspaceId: req.params.id }),
+      Label.deleteMany({ workspaceId: req.params.id }),
+      Notification.deleteMany({ workspaceId: req.params.id })
+    ]);
+
     return res.status(204).send();
   } catch (error) {
     return next(error);
@@ -124,6 +138,9 @@ workspaceRouter.post("/:id/members", async (req, res, next) => {
     const membership = await WorkspaceMember.findOne({ workspaceId: req.params.id, userId: req.userId, role: { $in: ["owner", "admin"] } });
     if (!membership) return res.status(403).json({ message: "Admin permission required to invite members." });
 
+    const workspace = await Workspace.findById(req.params.id);
+    if (!workspace) return res.status(404).json({ message: "Workspace not found." });
+
     const { email, role } = z.object({ email: z.string().email(), role: z.enum(workspaceMemberRoles).optional() }).parse(req.body);
     const targetUser = await User.findOne({ email: email.toLowerCase() });
     if (!targetUser) return res.status(404).json({ message: "User with this email not found." });
@@ -138,11 +155,19 @@ workspaceRouter.post("/:id/members", async (req, res, next) => {
       status: "active"
     });
 
+    eventBus.emit("member:invited", {
+      workspaceId: workspace._id,
+      workspaceName: workspace.name,
+      userId: req.userId,
+      invitedUserId: targetUser._id
+    });
+
     return res.status(201).json({ member: newMember });
   } catch (error) {
     return next(error);
   }
 });
+
 
 // Remove member from workspace
 workspaceRouter.delete("/:id/members/:userId", async (req, res, next) => {

@@ -6,6 +6,7 @@ import { Task, taskPriorities, taskStatuses } from "../models/Task.js";
 import { Comment } from "../models/Comment.js";
 import { Attachment } from "../models/Attachment.js";
 import { Activity } from "../models/Activity.js";
+import { eventBus } from "../services/events.js";
 
 const dateValue = z.coerce.date();
 const taskInput = z.object({
@@ -122,6 +123,8 @@ taskRouter.post("/", async (req, res, next) => {
       newValue: { title: task.title, status: task.status }
     });
 
+    eventBus.emit("task:created", { task, userId: req.userId });
+
     return res.status(201).json({ task });
   } catch (error) {
     return next(error);
@@ -211,6 +214,8 @@ taskRouter.patch("/:id", async (req, res, next) => {
       action: "updated",
       newValue: updates
     });
+
+    eventBus.emit("task:updated", { task, userId: req.userId, changes: updates });
 
     return res.json({ task });
   } catch (error) {
@@ -305,6 +310,9 @@ taskRouter.get("/:id/comments", async (req, res, next) => {
 taskRouter.post("/:id/comments", async (req, res, next) => {
   try {
     const { content } = z.object({ content: z.string().trim().min(1).max(5000) }).parse(req.body);
+    const task = await Task.findById(req.params.id);
+    if (!task) return res.status(404).json({ message: "Task not found." });
+
     const comment = await Comment.create({
       taskId: req.params.id,
       authorId: req.userId,
@@ -317,6 +325,8 @@ taskRouter.post("/:id/comments", async (req, res, next) => {
       action: "comment_added",
       newValue: { commentId: comment._id }
     });
+
+    eventBus.emit("comment:added", { comment, task, userId: req.userId });
 
     const populated = await Comment.findById(comment._id).populate("authorId", "name email avatarUrl");
     return res.status(201).json({ comment: populated });

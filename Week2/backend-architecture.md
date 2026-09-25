@@ -1,61 +1,73 @@
-# Backend Architecture
+# Backend Architecture & System Design
 
 ## Architecture Overview
 
-
-The application uses a **modular monolith**: one deployable backend application, divided into clear feature modules. This keeps the first version simple to develop and deploy while allowing each module to be separated later if scale requires it.
+The backend application is structured as a **modular monolith** built on Node.js and Express. It organizes domain responsibilities into cleanly decoupled modules (Routes, Models, Services, and Workers), enabling simplicity and rapid iteration with clear boundaries for microservice extraction when scale demands.
 
 ```text
-┌──────────────────────┐
-│ Web / Mobile Clients │
-└──────────┬───────────┘
-           │ HTTPS / REST
-┌──────────▼───────────┐
-│ API Gateway / Load   │
-│ Balancer             │
-└──────────┬───────────┘
-           │
-┌──────────▼─────────────────────────────────────────────┐
-│ Backend Application — Modular Monolith                  │
-│                                                         │
-│  Auth       Users       Teams       Projects            │
-│  Tasks      Comments    Notifications  Search           │
-│  Audit      Files                                      │
-└──────────┬───────────────────┬───────────────────┬─────┘
-           │                   │                   │
-     ┌─────▼──────┐      ┌─────▼─────┐      ┌─────▼──────┐
-     │ Persistence │      │   Redis   │      │   Object   │
-     │    Layer    │      │ cache/queue│     │   Storage  │
-     └─────┬──────┘      └───────────┘      └────────────┘
-           │
-     ┌─────▼──────────┐
-     │ Background Jobs│
-     │ / Queue Worker │
-     └─────┬──────────┘
-           │
-   ┌───────┼────────┬───────────┐
-   ▼       ▼        ▼           ▼
- Email   Push   Scheduled    File/image
-provider provider   tasks    processing
+                           ┌──────────────────────┐
+                           │ Web / Mobile Clients │
+                           └──────────┬───────────┘
+                                      │ HTTPS / REST (JSON)
+                           ┌──────────▼───────────┐
+                           │ Rate Limiter & Sanitize
+                           └──────────┬───────────┘
+                                      │
+ ┌────────────────────────────────────▼────────────────────────────────────────┐
+ │                      Express REST API — Modular Monolith                    │
+ │                                                                             │
+ │ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────┐ │
+ │ │    Auth     │ │    Users    │ │ Workspaces  │ │    Teams    │ │ Admin   │ │
+ │ └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘ └─────────┘ │
+ │ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────┐ │
+ │ │  Projects   │ │    Tasks    │ │   Labels    │ │ Notifications│ │ Search │ │
+ │ └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘ └─────────┘ │
+ │ ┌─────────────┐ ┌─────────────┐ ┌─────────────────────────────────────────┐ │
+ │ │  Analytics  │ │ File Upload │ │               Event Bus                 │ │
+ │ └─────────────┘ └─────────────┘ └─────────────────────────────────────────┘ │
+ └───────┬────────────────────────────┬─────────────────────────────┬──────────┘
+         │ Mongoose ODM               │ Key-Value Caching           │ File API
+ ┌───────▼──────────────┐     ┌───────▼──────────────┐      ┌───────▼──────────┐
+ │ MongoDB Database     │     │ Redis Cache Engine   │      │ Storage Layer    │
+ │ (Document Store)     │     │ (w/ In-Memory Fallback)│    │ (Static/Uploads) │
+ └───────┬──────────────┘     └──────────────────────┘      └──────────────────┘
+         │
+ ┌───────▼──────────────────────────┐
+ │ Background Scheduler (Cron)      │
+ ├──────────────────────────────────┤
+ │ - Due date reminders (every 15m) │
+ │ - Recurring task engine (daily)  │
+ └───────┬──────────────────┬───────┘
+         │                  │
+ ┌───────▼──────┐   ┌───────▼──────┐
+ │ Email (SMTP) │   │ Push (VAPID) │
+ └──────────────┘   └──────────────┘
 ```
 
 ## Module Responsibilities
 
-| Module | Responsibility |
-|---|---|
-| Auth | Registration, login, password hashing, JWT/session refresh, role checks. |
-| Users | User profiles, preferences, account settings. |
-| Teams | Team creation, membership, invitations, member roles. |
-| Projects | Project metadata, ownership, team visibility, project status. |
-| Tasks | Task CRUD, assignees, due dates, priority, status and labels. |
-| Comments | Comments and threaded replies attached to tasks. |
-| Notifications | In-app, email and push notification records and delivery. |
-| Search | Indexed search across projects and tasks. |
-| Audit | Immutable record of important user and system actions. |
-| Files | File metadata and secure links to object storage. |
+| Module | Responsibility | Key Models & Services |
+|---|---|---|
+| **Auth** | Registration, login, password hashing (bcrypt), JWT tokens, session lifecycle & invalidation | `User`, `Session`, `UserRole`, `token.js` |
+| **Users** | Profile CRUD, preferences (theme, notification settings), avatar, push subscriptions | `User` |
+| **Workspaces** | Workspace CRUD, slug generation, multi-tenant workspace membership, cascade deletion | `Workspace`, `WorkspaceMember` |
+| **Teams** | Team creation within workspaces, member management, lead assignments | `Team` |
+| **Projects** | Project metadata, team scoping, auto-keying, archiving/restoring, cascade cleanup | `Project` |
+| **Tasks & Subtasks** | Task CRUD, position reordering, subtasks, priorities, recurrence, assignees | `Task`, `Subtask` |
+| **Comments & Activity** | Threaded comments, immutable audit log of actions per task | `Comment`, `Activity` |
+| **Labels** | Hex-coded labeling scoped by workspace or project | `Label` |
+| **Notifications** | In-app notification inbox, unread counts, mark all read | `Notification` |
+| **Search** | Indexed regex and text search across tasks and projects | `Task`, `Project` |
+| **Analytics** | Real-time task statistics, completion rates, cached with Redis TTL | `analytics.js`, `redis.js` |
+| **Admin** | System health, tenant metrics, paginated user management, role upgrades/deactivations | `admin.js` |
+| **Events** | Internal pub/sub event bus coordinating automatic notifications and push dispatches | `events.js` |
 
-## Supporting Services
+## Infrastructure & Supporting Services
 
-- **Redis:** caches frequent reads, holds rate-limit counters, and backs the background-job queue.
-- **Object storage:** stores uploaded attachments and generated files.
-- **Background worker:** sends email/push notifications, runs scheduled reminders, and processes uploaded files.
+- **MongoDB (Persistence):** Primary database storing all domain entities with secondary indexes on foreign keys and search terms.
+- **Redis (Cache Layer):** Connected for distributed caching (e.g. analytics dashboard) with seamless in-memory fallback for offline/local environments.
+- **Background Scheduler:** In-process scheduler running recurring cron intervals for due date threshold alerts and recurring task generation.
+- **Email Service:** Nodemailer SMTP integration for welcome greetings and secure password reset tokens.
+- **Push Notifications:** Web-Push (VAPID) protocol support dispatching instant alerts on task assignments and updates.
+- **Security:** In-memory + Redis rate limiting, NoSQL query injection sanitization, MIME-type file upload filtering, and JWT session revocation.
+

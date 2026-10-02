@@ -2,6 +2,7 @@ import { EventEmitter } from "events";
 import { Notification } from "../models/Notification.js";
 import { User } from "../models/User.js";
 import { sendPushNotification } from "./push.js";
+import { publishRealtimeEvent } from "./pubsub.js";
 
 async function notifyUser(userId, payload) {
   try {
@@ -22,9 +23,13 @@ class AppEventBus extends EventEmitter {
   }
 
   _registerListeners() {
-    // When a task is created and assigned to someone else, notify the assignee
+    // When a task is created
     this.on("task:created", async ({ task, userId }) => {
       try {
+        // 1. Real-time Pub/Sub broadcast
+        await publishRealtimeEvent("task:created", { task, userId, projectId: task.projectId, workspaceId: task.workspaceId });
+
+        // 2. Push/In-app notification if assigned to someone else
         if (task.assigneeId && task.assigneeId.toString() !== userId.toString()) {
           const notif = await Notification.create({
             recipientId: task.assigneeId,
@@ -39,13 +44,17 @@ class AppEventBus extends EventEmitter {
           notifyUser(task.assigneeId, { title: notif.title, body: notif.message, url: `/tasks/${task._id}` });
         }
       } catch (err) {
-        console.error("[EventBus] task:created notification error:", err.message);
+        console.error("[EventBus] task:created error:", err.message);
       }
     });
 
-    // When a task is updated, notify relevant parties
+    // When a task is updated
     this.on("task:updated", async ({ task, userId, changes }) => {
       try {
+        // 1. Real-time Pub/Sub broadcast
+        await publishRealtimeEvent("task:updated", { task, userId, changes, projectId: task.projectId, workspaceId: task.workspaceId });
+
+        // 2. Notifications
         if (changes.assigneeId && changes.assigneeId.toString() !== userId.toString()) {
           await Notification.create({
             recipientId: changes.assigneeId,
@@ -72,15 +81,35 @@ class AppEventBus extends EventEmitter {
           });
         }
       } catch (err) {
-        console.error("[EventBus] task:updated notification error:", err.message);
+        console.error("[EventBus] task:updated error:", err.message);
+      }
+    });
+
+    // When a task is deleted
+    this.on("task:deleted", async ({ taskId, projectId, workspaceId, userId }) => {
+      try {
+        await publishRealtimeEvent("task:deleted", { taskId, projectId, workspaceId, userId });
+      } catch (err) {
+        console.error("[EventBus] task:deleted error:", err.message);
+      }
+    });
+
+    // When tasks are reordered
+    this.on("task:reordered", async ({ tasks, projectId, workspaceId, userId }) => {
+      try {
+        await publishRealtimeEvent("task:reordered", { tasks, projectId, workspaceId, userId });
+      } catch (err) {
+        console.error("[EventBus] task:reordered error:", err.message);
       }
     });
 
     // When a comment is added, notify the task owner/assignee
     this.on("comment:added", async ({ comment, task, userId }) => {
       try {
+        await publishRealtimeEvent("comment:added", { comment, taskId: task._id, projectId: task.projectId, workspaceId: task.workspaceId, userId });
+
         const recipientId = task.assigneeId || task.ownerId;
-        if (recipientId.toString() !== userId.toString()) {
+        if (recipientId && recipientId.toString() !== userId.toString()) {
           await Notification.create({
             recipientId,
             senderId: userId,
@@ -93,7 +122,7 @@ class AppEventBus extends EventEmitter {
           });
         }
       } catch (err) {
-        console.error("[EventBus] comment:added notification error:", err.message);
+        console.error("[EventBus] comment:added error:", err.message);
       }
     });
 
@@ -115,8 +144,9 @@ class AppEventBus extends EventEmitter {
       }
     });
 
-    console.log("Event bus initialized with notification listeners");
+    console.log("Event bus initialized with real-time Pub/Sub & notification listeners");
   }
 }
 
 export const eventBus = new AppEventBus();
+

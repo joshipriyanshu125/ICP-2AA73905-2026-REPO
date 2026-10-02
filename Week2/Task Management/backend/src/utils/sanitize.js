@@ -16,7 +16,18 @@ export function sanitizeInput(obj) {
 }
 
 export function sanitizeMiddleware(req, _res, next) {
-  if (req.body && typeof req.body === "object") req.body = sanitizeInput(req.body);
-  if (req.query && typeof req.query === "object") req.query = sanitizeInput(req.query);
+  if (req.body && typeof req.body === "object") {
+    req.body = sanitizeInput(req.body);
+  }
+  if (req.query && typeof req.query === "object") {
+    for (const key of Object.keys(req.query)) {
+      if (key.startsWith("$")) {
+        delete req.query[key];
+      } else if (typeof req.query[key] === "object" && req.query[key] !== null) {
+        req.query[key] = sanitizeInput(req.query[key]);
+      }
+    }
+  }
   next();
 }
+

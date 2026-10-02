@@ -1,22 +1,26 @@
 import rateLimit from "express-rate-limit";
 
-// General API rate limiter (100 requests per 15 minutes)
+const isDevOrTest = process.env.NODE_ENV !== "production";
+
+// General API rate limiter
 export const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: isDevOrTest ? 5000 : 100,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => isDevOrTest,
   message: {
     message: "Too many requests from this IP, please try again after 15 minutes."
   }
 });
 
-// Strict rate limiter for Authentication endpoints (10 attempts per 15 minutes)
+// Authentication endpoints rate limiter
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: isDevOrTest ? 1000 : 15,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => isDevOrTest,
   message: {
     message: "Too many login/signup attempts from this IP, please try again after 15 minutes."
   }

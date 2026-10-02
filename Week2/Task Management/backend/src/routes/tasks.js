@@ -169,6 +169,8 @@ taskRouter.patch("/reorder", async (req, res, next) => {
       }))
     );
 
+    eventBus.emit("task:reordered", { tasks, userId: req.userId });
+
     return res.json({ message: "Task order saved." });
   } catch (error) {
     return next(error);
@@ -235,6 +237,13 @@ taskRouter.delete("/:id", async (req, res, next) => {
       Attachment.deleteMany({ taskId: task._id }),
       Activity.deleteMany({ taskId: task._id })
     ]);
+
+    eventBus.emit("task:deleted", {
+      taskId: task._id,
+      projectId: task.projectId,
+      workspaceId: task.workspaceId,
+      userId: req.userId
+    });
 
     return res.status(204).send();
   } catch (error) {

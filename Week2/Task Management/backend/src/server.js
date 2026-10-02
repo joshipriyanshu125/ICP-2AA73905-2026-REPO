@@ -1,3 +1,4 @@
+import http from "http";
 import path from "path";
 import cors from "cors";
 import express from "express";
@@ -21,8 +22,15 @@ import { adminRouter } from "./routes/admin.js";
 import { searchRouter } from "./routes/search.js";
 import { initScheduler } from "./workers/scheduler.js";
 import { cache } from "./services/redis.js";
+import { initSocketServer } from "./services/socket.js";
+import "./services/pubsub.js"; // Initialize Redis Pub/Sub subscriber
 
 const app = express();
+const server = http.createServer(app);
+
+// Initialize Real-time WebSockets
+initSocketServer(server);
+
 app.use(cors({ origin: config.clientOrigin }));
 app.use(express.json({ limit: "5mb" }));
 app.use(sanitizeMiddleware);
@@ -69,12 +77,11 @@ app.use("/api/search", searchRouter);
 app.use(notFound);
 app.use(errorHandler);
 
-
 // Connect DB & Start Server
 connectDatabase()
   .then(() => {
     initScheduler();
-    app.listen(config.port, () => console.log(`API listening on http://localhost:${config.port}`));
+    server.listen(config.port, () => console.log(`API & Real-time WebSockets listening on http://localhost:${config.port}`));
   })
   .catch((error) => {
     console.error("Unable to start the API", error);

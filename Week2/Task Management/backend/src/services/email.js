@@ -18,6 +18,15 @@ try {
 
 export async function sendEmail({ to, subject, html, text }) {
   try {
+    if (!to) return { success: false, message: "Recipient email is required" };
+
+    // Prevent Mailer-Daemon bounce errors by ignoring dummy test domains and automated test runs
+    const isTestDomain = /@(test\.com|example\.com|test\.invalid|localhost)$/i.test(to);
+    if (process.env.NODE_ENV === "test" || isTestDomain) {
+      console.log(`[Email Service (Test Mode)] Skipped real dispatch to dummy address: ${to}`);
+      return { success: true, messageId: `mock-test-${Date.now()}` };
+    }
+
     if (!transporter) return { success: false, message: "Email transporter not initialized" };
     const info = await transporter.sendMail({
       from: config.smtp.from,

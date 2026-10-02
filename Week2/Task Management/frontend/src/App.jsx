@@ -66,7 +66,7 @@ export function App() {
 
   // Modal States
   const [authModal, setAuthModal] = useState({ isOpen: false, mode: 'signin' });
-  const [taskModal, setTaskModal] = useState({ isOpen: false, task: null });
+  const [taskModal, setTaskModal] = useState({ isOpen: false, task: null, defaultDate: null });
   const [detailDrawerTask, setDetailDrawerTask] = useState(null);
   const [workspaceModalOpen, setWorkspaceModalOpen] = useState(false);
 
@@ -260,11 +260,8 @@ export function App() {
       <Navbar
         user={user}
         onOpenAuth={(mode) => setAuthModal({ isOpen: true, mode })}
-        onOpenNewTask={() => setTaskModal({ isOpen: true, task: null })}
         onOpenWorkspaceModal={() => setWorkspaceModalOpen(true)}
         onLogout={handleLogout}
-        currentView={currentView}
-        setCurrentView={setCurrentView}
         workspaces={workspaces}
         currentWorkspace={currentWorkspace}
         setCurrentWorkspace={setCurrentWorkspace}
@@ -277,11 +274,10 @@ export function App() {
             tasks={tasks}
             user={user}
             onToggleTask={handleToggleTask}
-            onOpenNewTask={() => setTaskModal({ isOpen: true, task: null })}
-            onEditTask={(task) => setTaskModal({ isOpen: true, task })}
+            onOpenNewTask={(date) => setTaskModal({ isOpen: true, task: null, defaultDate: date || null })}
+            onEditTask={(task) => setTaskModal({ isOpen: true, task, defaultDate: null })}
             onOpenTaskDetail={(task) => setDetailDrawerTask(task)}
             onDeleteTask={handleDeleteTask}
-            currentView={currentView}
             onReorderTasks={(newTasks) => setTasks(newTasks)}
           />
         ) : (
@@ -303,7 +299,8 @@ export function App() {
         <TaskModal
           isOpen={taskModal.isOpen}
           task={taskModal.task}
-          onClose={() => setTaskModal({ isOpen: false, task: null })}
+          defaultDate={taskModal.defaultDate}
+          onClose={() => setTaskModal({ isOpen: false, task: null, defaultDate: null })}
           onSave={handleSaveTask}
           workspaces={workspaces}
           currentWorkspace={currentWorkspace}

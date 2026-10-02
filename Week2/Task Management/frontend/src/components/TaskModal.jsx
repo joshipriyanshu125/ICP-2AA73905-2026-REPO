@@ -1,62 +1,97 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, Flag, Tag, Folder, Loader2 } from 'lucide-react';
+import { X, Calendar as CalendarIcon, Tag as TagIcon, Plus, Loader2 } from 'lucide-react';
 
 const PRIORITIES = [
-  { value: 'urgent', label: 'Urgent', color: '#EF4444' },
-  { value: 'high', label: 'High', color: '#F97316' },
-  { value: 'medium', label: 'Medium', color: '#F59E0B' },
-  { value: 'low', label: 'Low', color: '#10B981' }
+  { value: 'low', label: 'Low' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'high', label: 'High' },
+  { value: 'urgent', label: 'Urgent' }
 ];
 
-const DEFAULT_CATEGORIES = ['Design', 'Planning', 'Engineering', 'Marketing', 'Meetings', 'Operations'];
+const STATUSES = [
+  { value: 'todo', label: 'To do' },
+  { value: 'in_progress', label: 'In progress' },
+  { value: 'completed', label: 'Done' }
+];
 
-export function TaskModal({ task, isOpen, onClose, onSave, workspaces, currentWorkspace }) {
+const CATEGORIES = [
+  'General',
+  'Work',
+  'Personal',
+  'Design',
+  'Planning',
+  'Engineering',
+  'Meetings'
+];
+
+export function TaskModal({ task, isOpen, onClose, onSave, workspaces, currentWorkspace, defaultDate }) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [priority, setPriority] = useState('medium');
-  const [category, setCategory] = useState('Design');
   const [status, setStatus] = useState('todo');
+  const [priority, setPriority] = useState('medium');
+  const [category, setCategory] = useState('General');
+  const [tags, setTags] = useState([]);
+  const [tagInput, setTagInput] = useState('');
   const [dueDate, setDueDate] = useState('');
-  const [workspaceId, setWorkspaceId] = useState('');
   const [loading, setLoading] = useState(false);
-  const [customCategory, setCustomCategory] = useState('');
 
   useEffect(() => {
     if (task) {
       setTitle(task.title || '');
       setDescription(task.description || '');
-      setPriority(task.priority || 'medium');
-      setCategory(task.category || 'Design');
       setStatus(task.status || 'todo');
+      setPriority(task.priority || 'medium');
+      setCategory(task.category || 'General');
+      setTags(task.tags || (task.labels?.map(l => l.name || l)) || []);
       setDueDate(task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '');
-      setWorkspaceId(task.workspaceId || currentWorkspace?._id || '');
     } else {
       setTitle('');
       setDescription('');
-      setPriority('medium');
-      setCategory('Design');
       setStatus('todo');
-      setDueDate('');
-      setWorkspaceId(currentWorkspace?._id || '');
+      setPriority('medium');
+      setCategory('General');
+      setTags([]);
+      setTagInput('');
+      setDueDate(defaultDate ? new Date(defaultDate).toISOString().split('T')[0] : '');
     }
-  }, [task, isOpen, currentWorkspace]);
+  }, [task, isOpen, defaultDate]);
 
   if (!isOpen) return null;
 
+  const handleAddTag = (e) => {
+    if (e) e.preventDefault();
+    const trimmed = tagInput.trim();
+    if (trimmed && !tags.includes(trimmed)) {
+      setTags([...tags, trimmed]);
+      setTagInput('');
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove) => {
+    setTags(tags.filter((t) => t !== tagToRemove));
+  };
+
+  const handleTagKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddTag();
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!title.trim()) return;
+    if (!title.trim() || loading) return;
 
     setLoading(true);
-    const finalCategory = customCategory.trim() || category;
     const taskPayload = {
       title: title.trim(),
       description: description.trim() || undefined,
-      priority,
-      category: finalCategory,
       status,
+      priority,
+      category,
+      tags,
       dueDate: dueDate ? new Date(dueDate).toISOString() : null,
-      workspaceId: workspaceId || undefined
+      workspaceId: currentWorkspace?._id || undefined
     };
 
     try {
@@ -70,52 +105,147 @@ export function TaskModal({ task, isOpen, onClose, onSave, workspaces, currentWo
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" style={{ maxWidth: '540px' }} onClick={(e) => e.stopPropagation()}>
+    <div
+      className="modal-overlay"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        className="modal-content"
+        style={{
+          maxWidth: '480px',
+          padding: '2rem',
+          borderRadius: '24px',
+          background: '#FFFFFF',
+          boxShadow: '0 20px 40px -15px rgba(44, 30, 16, 0.15)',
+          position: 'relative'
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Close Button */}
         <button
-          className="btn btn-ghost btn-sm"
+          type="button"
           onClick={onClose}
-          style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', padding: '0.4rem', borderRadius: '50%' }}
+          style={{
+            position: 'absolute',
+            top: '1.5rem',
+            right: '1.5rem',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            color: 'var(--text-muted)',
+            padding: '0.25rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
         >
-          <X size={18} />
+          <X size={20} />
         </button>
 
-        <h2 className="font-serif" style={{ fontSize: '1.8rem', fontWeight: 600, marginBottom: '1.5rem', color: 'var(--text-primary)' }}>
-          {task ? 'Edit Task' : 'Create New Task'}
+        {/* Modal Title */}
+        <h2
+          className="font-serif"
+          style={{
+            fontSize: '1.9rem',
+            fontWeight: 700,
+            marginBottom: '1.5rem',
+            color: 'var(--text-primary)',
+            letterSpacing: '-0.02em'
+          }}
+        >
+          {task ? 'Edit task' : 'Create task'}
         </h2>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} noValidate>
           {/* Title */}
-          <div className="form-group">
-            <label className="form-label">Task Title *</label>
+          <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+            <label className="form-label" style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.4rem' }}>
+              Title
+            </label>
             <input
               type="text"
               className="form-input"
-              placeholder="e.g., Review brand design mockups"
+              placeholder="What needs to be done?"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
               autoFocus
+              style={{
+                borderRadius: '12px',
+                padding: '0.75rem 1rem',
+                backgroundColor: '#FAF8F5',
+                border: '1px solid rgba(87, 83, 78, 0.15)',
+                fontSize: '0.95rem'
+              }}
             />
           </div>
 
           {/* Description */}
-          <div className="form-group">
-            <label className="form-label">Description (optional)</label>
+          <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+            <label className="form-label" style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.4rem' }}>
+              Description
+            </label>
             <textarea
               className="form-textarea"
               rows={3}
-              placeholder="Add key context, requirements, or links..."
+              placeholder="Add details..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              style={{
+                borderRadius: '12px',
+                padding: '0.75rem 1rem',
+                backgroundColor: '#FAF8F5',
+                border: '1px solid rgba(87, 83, 78, 0.15)',
+                fontSize: '0.95rem',
+                resize: 'vertical'
+              }}
             />
           </div>
 
-          {/* Grid: Priority & Status */}
+          {/* Status & Priority Row */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
             <div>
-              <label className="form-label">Priority</label>
-              <select className="form-select" value={priority} onChange={(e) => setPriority(e.target.value)}>
+              <label className="form-label" style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.4rem' }}>
+                Status
+              </label>
+              <select
+                className="form-select"
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                style={{
+                  borderRadius: '12px',
+                  padding: '0.7rem 1rem',
+                  backgroundColor: '#FAF8F5',
+                  border: '1px solid rgba(87, 83, 78, 0.15)',
+                  fontSize: '0.925rem'
+                }}
+              >
+                {STATUSES.map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="form-label" style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.4rem' }}>
+                Priority
+              </label>
+              <select
+                className="form-select"
+                value={priority}
+                onChange={(e) => setPriority(e.target.value)}
+                style={{
+                  borderRadius: '12px',
+                  padding: '0.7rem 1rem',
+                  backgroundColor: '#FAF8F5',
+                  border: '1px solid rgba(87, 83, 78, 0.15)',
+                  fontSize: '0.925rem'
+                }}
+              >
                 {PRIORITIES.map((p) => (
                   <option key={p.value} value={p.value}>
                     {p.label}
@@ -123,59 +253,165 @@ export function TaskModal({ task, isOpen, onClose, onSave, workspaces, currentWo
                 ))}
               </select>
             </div>
-
-            <div>
-              <label className="form-label">Status</label>
-              <select className="form-select" value={status} onChange={(e) => setStatus(e.target.value)}>
-                <option value="todo">To Do</option>
-                <option value="in_progress">In Progress</option>
-                <option value="review">In Review</option>
-                <option value="completed">Completed</option>
-              </select>
-            </div>
           </div>
 
-          {/* Grid: Category & Due Date */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.75rem' }}>
-            <div>
-              <label className="form-label">Category</label>
-              <select className="form-select" value={category} onChange={(e) => setCategory(e.target.value)}>
-                {DEFAULT_CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
+          {/* Category */}
+          <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+            <label className="form-label" style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.4rem' }}>
+              Category
+            </label>
+            <select
+              className="form-select"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              style={{
+                borderRadius: '12px',
+                padding: '0.7rem 1rem',
+                backgroundColor: '#FAF8F5',
+                border: '1px solid rgba(87, 83, 78, 0.15)',
+                fontSize: '0.925rem'
+              }}
+            >
+              {CATEGORIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Tags */}
+          <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+            <label className="form-label" style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.4rem' }}>
+              Tags
+            </label>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <input
+                type="text"
+                className="form-input"
+                placeholder="Add a tag and press Enter"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={handleTagKeyDown}
+                style={{
+                  flex: 1,
+                  borderRadius: '12px',
+                  padding: '0.7rem 1rem',
+                  backgroundColor: '#FAF8F5',
+                  border: '1px solid rgba(87, 83, 78, 0.15)',
+                  fontSize: '0.925rem'
+                }}
+              />
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={handleAddTag}
+                style={{
+                  borderRadius: '12px',
+                  padding: '0.7rem 1.25rem',
+                  backgroundColor: '#F0EFEA',
+                  color: 'var(--text-secondary)',
+                  border: 'none',
+                  fontSize: '0.9rem',
+                  fontWeight: 600
+                }}
+              >
+                Add
+              </button>
             </div>
 
-            <div>
-              <label className="form-label">Due Date</label>
+            {/* Render Tags Chips */}
+            {tags.length > 0 && (
+              <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginTop: '0.6rem' }}>
+                {tags.map((t) => (
+                  <span
+                    key={t}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      fontSize: '0.785rem',
+                      padding: '0.2rem 0.6rem',
+                      backgroundColor: '#EAE6E0',
+                      borderRadius: '100px',
+                      color: 'var(--text-primary)',
+                      fontWeight: 600
+                    }}
+                  >
+                    #{t}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveTag(t)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex' }}
+                    >
+                      <X size={12} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Due Date */}
+          <div className="form-group" style={{ marginBottom: '1.75rem' }}>
+            <label className="form-label" style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.4rem' }}>
+              Due date
+            </label>
+            <div style={{ position: 'relative' }}>
               <input
                 type="date"
                 className="form-input"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
+                placeholder="Pick a date"
+                style={{
+                  borderRadius: '12px',
+                  padding: '0.7rem 1rem 0.7rem 2.6rem',
+                  backgroundColor: '#FAF8F5',
+                  border: '1px solid rgba(87, 83, 78, 0.15)',
+                  fontSize: '0.925rem'
+                }}
+              />
+              <CalendarIcon
+                size={16}
+                style={{
+                  position: 'absolute',
+                  left: '0.9rem',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: 'var(--text-muted)',
+                  pointerEvents: 'none'
+                }}
               />
             </div>
           </div>
 
-          {/* Actions */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-            <button type="button" className="btn btn-secondary" onClick={onClose} disabled={loading}>
-              Cancel
-            </button>
-            <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? (
-                <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <Loader2 size={16} className="animate-spin" /> Saving...
-                </span>
-              ) : task ? (
-                'Save Changes'
-              ) : (
-                'Create Task'
-              )}
-            </button>
-          </div>
+          {/* Submit Button */}
+          <button
+            type="submit"
+            className="btn btn-primary"
+            style={{
+              width: '100%',
+              padding: '0.85rem',
+              fontSize: '1rem',
+              fontWeight: 600,
+              borderRadius: '12px',
+              backgroundColor: '#C25508',
+              color: '#FFFFFF',
+              boxShadow: '0 4px 14px rgba(194, 85, 8, 0.25)'
+            }}
+            disabled={loading}
+          >
+            {loading ? (
+              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                <Loader2 size={18} className="animate-spin" /> Saving...
+              </span>
+            ) : task ? (
+              'Save changes'
+            ) : (
+              'Create task'
+            )}
+          </button>
         </form>
       </div>
     </div>

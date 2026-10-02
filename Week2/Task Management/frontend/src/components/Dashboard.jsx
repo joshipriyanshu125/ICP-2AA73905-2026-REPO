@@ -1,25 +1,28 @@
 import React, { useState, useMemo } from 'react';
 import { 
   Search, 
-  Filter, 
   Plus, 
-  Calendar, 
-  Tag, 
+  Calendar as CalendarIcon, 
+  List, 
+  Circle, 
+  AlertCircle, 
+  ArrowRightCircle, 
   CheckCircle2, 
-  Clock, 
-  MoreVertical, 
-  Edit3, 
-  Trash2, 
-  ListOrdered, 
   GripVertical, 
-  BarChart2, 
-  CheckSquare, 
-  AlertTriangle, 
-  CheckCheck, 
-  ArrowUpDown,
-  Sparkles,
-  Inbox
+  ChevronLeft, 
+  ChevronRight, 
+  ChevronDown,
+  Clock,
+  Trash2,
+  Edit3
 } from 'lucide-react';
+
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
+
+const DAYS_OF_WEEK = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
 
 export function Dashboard({ 
   tasks, 
@@ -28,19 +31,48 @@ export function Dashboard({
   onEditTask, 
   onOpenTaskDetail, 
   onDeleteTask, 
-  currentView, 
   onReorderTasks,
   user
 }) {
+  const [activeTab, setActiveTab] = useState('list'); // 'list' | 'calendar'
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [tagFilter, setTagFilter] = useState('all');
+  const [sortOrder, setSortOrder] = useState('my_order');
   const [draggedTaskId, setDraggedTaskId] = useState(null);
 
-  // Filtered and searched tasks
+  // Calendar State
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+  // Analytics Computation
+  const stats = useMemo(() => {
+    const total = tasks.length;
+    const todo = tasks.filter((t) => t.status === 'todo').length;
+    const inProgress = tasks.filter((t) => t.status === 'in_progress').length;
+    const completed = tasks.filter((t) => t.status === 'completed').length;
+    return { total, todo, inProgress, completed };
+  }, [tasks]);
+
+  // Categories & Tags extracted from tasks
+  const availableCategories = useMemo(() => {
+    const cats = new Set(tasks.map((t) => t.category).filter(Boolean));
+    return ['all', ...Array.from(cats)];
+  }, [tasks]);
+
+  const availableTags = useMemo(() => {
+    const tagSet = new Set();
+    tasks.forEach((t) => {
+      (t.tags || []).forEach((tag) => tagSet.add(tag));
+      (t.labels || []).forEach((l) => tagSet.add(l.name || l));
+    });
+    return ['all', ...Array.from(tagSet)];
+  }, [tasks]);
+
+  // Filtered & Sorted Tasks
   const filteredTasks = useMemo(() => {
-    return tasks.filter((task) => {
+    let result = tasks.filter((task) => {
       // Search
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
@@ -51,11 +83,7 @@ export function Dashboard({
       }
 
       // Status
-      if (statusFilter !== 'all') {
-        if (statusFilter === 'active' && task.status === 'completed') return false;
-        if (statusFilter === 'completed' && task.status !== 'completed') return false;
-        if (['todo', 'in_progress', 'review'].includes(statusFilter) && task.status !== statusFilter) return false;
-      }
+      if (statusFilter !== 'all' && task.status !== statusFilter) return false;
 
       // Priority
       if (priorityFilter !== 'all' && task.priority !== priorityFilter) return false;
@@ -63,17 +91,36 @@ export function Dashboard({
       // Category
       if (categoryFilter !== 'all' && task.category !== categoryFilter) return false;
 
+      // Tag
+      if (tagFilter !== 'all') {
+        const taskTags = task.tags || task.labels?.map((l) => l.name || l) || [];
+        if (!taskTags.includes(tagFilter)) return false;
+      }
+
       return true;
     });
-  }, [tasks, searchQuery, statusFilter, priorityFilter, categoryFilter]);
 
-  // Unique categories in current task pool
-  const availableCategories = useMemo(() => {
-    const cats = new Set(tasks.map((t) => t.category).filter(Boolean));
-    return ['all', ...Array.from(cats)];
-  }, [tasks]);
+    // Sorting
+    if (sortOrder === 'due_date') {
+      result.sort((a, b) => {
+        if (!a.dueDate) return 1;
+        if (!b.dueDate) return -1;
+        return new Date(a.dueDate) - new Date(b.dueDate);
+      });
+    } else if (sortOrder === 'priority') {
+      const priorityWeight = { urgent: 4, high: 3, medium: 2, low: 1 };
+      result.sort((a, b) => (priorityWeight[b.priority] || 0) - (priorityWeight[a.priority] || 0));
+    } else if (sortOrder === 'alphabetical') {
+      result.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+    } else {
+      // 'my_order' (position or creation)
+      result.sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+    }
 
-  // Drag and Drop reordering helpers
+    return result;
+  }, [tasks, searchQuery, statusFilter, priorityFilter, categoryFilter, tagFilter, sortOrder]);
+
+  // Drag & Drop handlers
   const handleDragStart = (e, id) => {
     setDraggedTaskId(id);
     e.dataTransfer.setData('text/plain', id);
@@ -83,227 +130,647 @@ export function Dashboard({
     e.preventDefault();
   };
 
-  const handleDrop = (e, targetStatus) => {
+  const handleDrop = (e, targetIndex) => {
     e.preventDefault();
     const id = e.dataTransfer.getData('text/plain') || draggedTaskId;
     if (!id) return;
 
-    if (targetStatus) {
-      // Move between Kanban columns
-      onToggleTask(id, targetStatus);
-    }
+    const sourceIndex = tasks.findIndex((t) => t._id === id);
+    if (sourceIndex < 0 || sourceIndex === targetIndex) return;
+
+    const reordered = [...tasks];
+    const [removed] = reordered.splice(sourceIndex, 1);
+    reordered.splice(targetIndex, 0, removed);
+
+    const updatedWithPosition = reordered.map((task, idx) => ({
+      ...task,
+      position: idx
+    }));
+
+    onReorderTasks(updatedWithPosition);
     setDraggedTaskId(null);
   };
 
-  // Helper for due date display
-  const formatDueDate = (dateStr) => {
+  // Helper for due date label
+  const formatDueDateLabel = (dateStr) => {
     if (!dateStr) return null;
-    const date = new Date(dateStr);
-    const now = new Date();
-    const isToday = date.toDateString() === now.toDateString();
-    const isPast = date < now && !isToday;
+    const target = new Date(dateStr);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    return {
-      text: isToday ? 'Today' : date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
-      isPast,
-      isToday,
-    };
+    const targetDate = new Date(target);
+    targetDate.setHours(0, 0, 0, 0);
+
+    const diffDays = Math.round((targetDate - today) / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Tomorrow';
+    if (diffDays === -1) return 'Yesterday';
+    return target.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
-  // Analytics Computation
-  const stats = useMemo(() => {
-    const total = tasks.length;
-    const completed = tasks.filter((t) => t.status === 'completed').length;
-    const pending = total - completed;
-    const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
-    const urgentCount = tasks.filter((t) => ['urgent', 'high'].includes(t.priority) && t.status !== 'completed').length;
+  // Calendar calculations
+  const calendarData = useMemo(() => {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
 
-    return { total, completed, pending, rate, urgentCount };
-  }, [tasks]);
+    const firstDayOfMonth = new Date(year, month, 1);
+    const lastDayOfMonth = new Date(year, month + 1, 0);
+
+    // Monday as first day (0 = Mon, ..., 6 = Sun)
+    let startDay = firstDayOfMonth.getDay() - 1;
+    if (startDay === -1) startDay = 6;
+
+    const totalDays = lastDayOfMonth.getDate();
+    const prevMonthLastDay = new Date(year, month, 0).getDate();
+
+    const days = [];
+
+    // Previous month filler days
+    for (let i = startDay - 1; i >= 0; i--) {
+      const d = prevMonthLastDay - i;
+      const dateObj = new Date(year, month - 1, d);
+      days.push({ dayNumber: d, date: dateObj, isCurrentMonth: false });
+    }
+
+    // Current month days
+    for (let i = 1; i <= totalDays; i++) {
+      const dateObj = new Date(year, month, i);
+      days.push({ dayNumber: i, date: dateObj, isCurrentMonth: true });
+    }
+
+    // Next month filler days to complete 35 or 42 grid cells
+    const remaining = (7 - (days.length % 7)) % 7;
+    for (let i = 1; i <= remaining; i++) {
+      const dateObj = new Date(year, month + 1, i);
+      days.push({ dayNumber: i, date: dateObj, isCurrentMonth: false });
+    }
+
+    return days;
+  }, [currentDate]);
+
+  const prevMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+  };
+
+  const nextMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+  };
+
+  const goToToday = () => {
+    setCurrentDate(new Date());
+  };
+
+  // Check if a date is today
+  const isTodayDate = (dateObj) => {
+    const now = new Date();
+    return (
+      dateObj.getDate() === now.getDate() &&
+      dateObj.getMonth() === now.getMonth() &&
+      dateObj.getFullYear() === now.getFullYear()
+    );
+  };
+
+  // Get tasks matching a specific calendar date
+  const getTasksForDate = (dateObj) => {
+    const dateStr = dateObj.toISOString().split('T')[0];
+    return tasks.filter((t) => {
+      if (!t.dueDate) return false;
+      const tStr = new Date(t.dueDate).toISOString().split('T')[0];
+      return tStr === dateStr;
+    });
+  };
 
   return (
-    <div className="dashboard-container">
-      {/* Header Banner */}
-      <div className="dashboard-header">
+    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem 1.5rem', width: '100%' }}>
+      {/* 1. Dashboard Header */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '2rem' }}>
         <div>
-          <h1 className="dashboard-title">
-            Welcome, {user?.name ? user.name.split(' ')[0] : 'there'}
+          <h1
+            className="font-serif"
+            style={{
+              fontSize: '2.75rem',
+              fontWeight: 700,
+              letterSpacing: '-0.03em',
+              color: 'var(--text-primary)',
+              lineHeight: 1.1,
+              marginBottom: '0.4rem'
+            }}
+          >
+            Dashboard
           </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.975rem' }}>
-            {stats.pending === 0 && stats.total > 0
-              ? '✨ All tasks complete! Enjoy your serene day.'
-              : `You have ${stats.pending} pending task${stats.pending === 1 ? '' : 's'} — let’s make steady progress.`}
+          <p style={{ color: 'var(--text-secondary)', fontSize: '1rem' }}>
+            Organize your day, one task at a time.
           </p>
         </div>
 
-        <button className="btn btn-primary" onClick={onOpenNewTask}>
-          <Plus size={18} /> New Task
+        <button
+          className="btn btn-primary"
+          onClick={() => onOpenNewTask()}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            padding: '0.75rem 1.4rem',
+            fontSize: '0.95rem',
+            fontWeight: 600,
+            borderRadius: '12px',
+            backgroundColor: '#C25508',
+            color: '#FFFFFF',
+            border: 'none',
+            boxShadow: '0 4px 12px rgba(194, 85, 8, 0.25)'
+          }}
+        >
+          <Plus size={18} strokeWidth={2.5} /> New task
         </button>
       </div>
 
-      {/* Filter Toolbar (Search & Filter Tags) */}
-      <div className="toolbar-container">
-        {/* Search */}
-        <div className="search-box">
-          <Search size={16} className="search-icon" />
-          <input
-            type="text"
-            className="search-input"
-            placeholder="Search tasks, categories, tags... (⌘K)"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+      {/* 2. Top 4 Metric Cards */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: '1.25rem',
+          marginBottom: '2rem'
+        }}
+      >
+        {/* Card 1: Total tasks */}
+        <div
+          style={{
+            backgroundColor: '#FFFFFF',
+            borderRadius: '18px',
+            padding: '1.4rem 1.5rem',
+            border: '1px solid rgba(87, 83, 78, 0.12)',
+            boxShadow: '0 2px 8px rgba(44, 30, 16, 0.03)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start'
+          }}
+        >
+          <div>
+            <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '0.5rem' }}>
+              Total tasks
+            </div>
+            <div className="font-serif" style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>
+              {stats.total}
+            </div>
+          </div>
+          <div style={{ width: 38, height: 38, borderRadius: '50%', backgroundColor: '#FAF8F5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Circle size={22} color="#57534E" strokeWidth={2} />
+          </div>
         </div>
 
-        {/* Status Pills */}
-        <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, marginRight: '0.2rem' }}>
-            Status:
-          </span>
-          {['all', 'active', 'completed'].map((st) => (
-            <button
-              key={st}
-              className={`btn btn-sm ${statusFilter === st ? 'btn-primary' : 'btn-ghost'}`}
-              style={{ padding: '0.25rem 0.75rem', fontSize: '0.8rem' }}
-              onClick={() => setStatusFilter(st)}
-            >
-              {st.charAt(0).toUpperCase() + st.slice(1)}
-            </button>
-          ))}
+        {/* Card 2: To do */}
+        <div
+          style={{
+            backgroundColor: '#E5E0D8',
+            borderRadius: '18px',
+            padding: '1.4rem 1.5rem',
+            boxShadow: '0 2px 8px rgba(44, 30, 16, 0.03)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start'
+          }}
+        >
+          <div>
+            <div style={{ fontSize: '0.875rem', color: '#44403C', fontWeight: 600, marginBottom: '0.5rem' }}>
+              To do
+            </div>
+            <div className="font-serif" style={{ fontSize: '2.5rem', fontWeight: 800, color: '#1C1917', lineHeight: 1 }}>
+              {stats.todo}
+            </div>
+          </div>
+          <div style={{ width: 38, height: 38, borderRadius: '50%', backgroundColor: '#D8D2C8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <AlertCircle size={20} color="#292524" strokeWidth={2.2} />
+          </div>
         </div>
 
-        {/* Priority Filter */}
-        <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, marginRight: '0.2rem' }}>
-            Priority:
-          </span>
-          {['all', 'urgent', 'high', 'medium', 'low'].map((p) => (
-            <button
-              key={p}
-              className={`btn btn-sm ${priorityFilter === p ? 'btn-primary' : 'btn-ghost'}`}
-              style={{ padding: '0.25rem 0.75rem', fontSize: '0.8rem' }}
-              onClick={() => setPriorityFilter(p)}
-            >
-              {p.charAt(0).toUpperCase() + p.slice(1)}
-            </button>
-          ))}
+        {/* Card 3: In progress */}
+        <div
+          style={{
+            backgroundColor: '#2EC5E8',
+            borderRadius: '18px',
+            padding: '1.4rem 1.5rem',
+            boxShadow: '0 2px 8px rgba(44, 30, 16, 0.03)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start'
+          }}
+        >
+          <div>
+            <div style={{ fontSize: '0.875rem', color: '#0C4A6E', fontWeight: 600, marginBottom: '0.5rem' }}>
+              In progress
+            </div>
+            <div className="font-serif" style={{ fontSize: '2.5rem', fontWeight: 800, color: '#082F49', lineHeight: 1 }}>
+              {stats.inProgress}
+            </div>
+          </div>
+          <div style={{ width: 38, height: 38, borderRadius: '50%', backgroundColor: '#22B3D4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <ArrowRightCircle size={22} color="#082F49" strokeWidth={2.2} />
+          </div>
+        </div>
+
+        {/* Card 4: Done */}
+        <div
+          style={{
+            backgroundColor: '#68C27E',
+            borderRadius: '18px',
+            padding: '1.4rem 1.5rem',
+            boxShadow: '0 2px 8px rgba(44, 30, 16, 0.03)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start'
+          }}
+        >
+          <div>
+            <div style={{ fontSize: '0.875rem', color: '#14532D', fontWeight: 600, marginBottom: '0.5rem' }}>
+              Done
+            </div>
+            <div className="font-serif" style={{ fontSize: '2.5rem', fontWeight: 800, color: '#052E16', lineHeight: 1 }}>
+              {stats.completed}
+            </div>
+          </div>
+          <div style={{ width: 38, height: 38, borderRadius: '50%', backgroundColor: '#58B26E', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <CheckCircle2 size={22} color="#052E16" strokeWidth={2.2} />
+          </div>
         </div>
       </div>
 
-      {/* VIEW 1: LIST VIEW */}
-      {currentView === 'list' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+      {/* 3. View Switcher & Toolbar */}
+      <div style={{ marginBottom: '1.5rem' }}>
+        {/* View Toggle Tabs */}
+        <div style={{ display: 'inline-flex', backgroundColor: '#EFECE6', padding: '0.3rem', borderRadius: '14px', marginBottom: '1.25rem', gap: '0.25rem' }}>
+          <button
+            onClick={() => setActiveTab('list')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              padding: '0.45rem 1rem',
+              borderRadius: '10px',
+              border: 'none',
+              cursor: 'pointer',
+              fontWeight: 600,
+              fontSize: '0.875rem',
+              backgroundColor: activeTab === 'list' ? '#FFFFFF' : 'transparent',
+              color: activeTab === 'list' ? 'var(--text-primary)' : 'var(--text-secondary)',
+              boxShadow: activeTab === 'list' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none'
+            }}
+          >
+            <List size={16} /> List
+          </button>
+          <button
+            onClick={() => setActiveTab('calendar')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              padding: '0.45rem 1rem',
+              borderRadius: '10px',
+              border: 'none',
+              cursor: 'pointer',
+              fontWeight: 600,
+              fontSize: '0.875rem',
+              backgroundColor: activeTab === 'calendar' ? '#FFFFFF' : 'transparent',
+              color: activeTab === 'calendar' ? 'var(--text-primary)' : 'var(--text-secondary)',
+              boxShadow: activeTab === 'calendar' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none'
+            }}
+          >
+            <CalendarIcon size={16} /> Calendar
+          </button>
+        </div>
+
+        {/* Search & Filter Bar */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+          {/* Search Box */}
+          <div
+            style={{
+              position: 'relative',
+              width: '100%'
+            }}
+          >
+            <Search
+              size={18}
+              style={{
+                position: 'absolute',
+                left: '1.1rem',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                color: 'var(--text-muted)'
+              }}
+            />
+            <input
+              type="text"
+              placeholder="Search tasks..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '0.75rem 1.1rem 0.75rem 2.8rem',
+                borderRadius: '100px',
+                border: '1px solid rgba(87, 83, 78, 0.15)',
+                backgroundColor: '#FAF8F5',
+                fontSize: '0.925rem',
+                outline: 'none',
+                color: 'var(--text-primary)'
+              }}
+            />
+          </div>
+
+          {/* Filter Pills Row */}
+          <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            {/* Status Filter */}
+            <div style={{ position: 'relative' }}>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                style={{
+                  appearance: 'none',
+                  padding: '0.5rem 2rem 0.5rem 1rem',
+                  borderRadius: '100px',
+                  border: '1px solid rgba(87, 83, 78, 0.15)',
+                  backgroundColor: '#FAF8F5',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  color: 'var(--text-primary)',
+                  cursor: 'pointer',
+                  outline: 'none'
+                }}
+              >
+                <option value="all">All status</option>
+                <option value="todo">To do</option>
+                <option value="in_progress">In progress</option>
+                <option value="completed">Done</option>
+              </select>
+              <ChevronDown size={14} style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-muted)' }} />
+            </div>
+
+            {/* Priority Filter */}
+            <div style={{ position: 'relative' }}>
+              <select
+                value={priorityFilter}
+                onChange={(e) => setPriorityFilter(e.target.value)}
+                style={{
+                  appearance: 'none',
+                  padding: '0.5rem 2rem 0.5rem 1rem',
+                  borderRadius: '100px',
+                  border: '1px solid rgba(87, 83, 78, 0.15)',
+                  backgroundColor: '#FAF8F5',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  color: 'var(--text-primary)',
+                  cursor: 'pointer',
+                  outline: 'none'
+                }}
+              >
+                <option value="all">All priority</option>
+                <option value="urgent">Urgent</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+              </select>
+              <ChevronDown size={14} style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-muted)' }} />
+            </div>
+
+            {/* Category Filter */}
+            <div style={{ position: 'relative' }}>
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                style={{
+                  appearance: 'none',
+                  padding: '0.5rem 2rem 0.5rem 1rem',
+                  borderRadius: '100px',
+                  border: '1px solid rgba(87, 83, 78, 0.15)',
+                  backgroundColor: '#FAF8F5',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  color: 'var(--text-primary)',
+                  cursor: 'pointer',
+                  outline: 'none'
+                }}
+              >
+                <option value="all">All category</option>
+                {availableCategories.filter((c) => c !== 'all').map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown size={14} style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-muted)' }} />
+            </div>
+
+            {/* Tag Filter */}
+            <div style={{ position: 'relative' }}>
+              <select
+                value={tagFilter}
+                onChange={(e) => setTagFilter(e.target.value)}
+                style={{
+                  appearance: 'none',
+                  padding: '0.5rem 2rem 0.5rem 1rem',
+                  borderRadius: '100px',
+                  border: '1px solid rgba(87, 83, 78, 0.15)',
+                  backgroundColor: '#FAF8F5',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  color: 'var(--text-primary)',
+                  cursor: 'pointer',
+                  outline: 'none'
+                }}
+              >
+                <option value="all">All tag</option>
+                {availableTags.filter((t) => t !== 'all').map((t) => (
+                  <option key={t} value={t}>
+                    #{t}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown size={14} style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-muted)' }} />
+            </div>
+
+            {/* Sort Order */}
+            <div style={{ position: 'relative' }}>
+              <select
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value)}
+                style={{
+                  appearance: 'none',
+                  padding: '0.5rem 2rem 0.5rem 1rem',
+                  borderRadius: '100px',
+                  border: '1px solid rgba(87, 83, 78, 0.15)',
+                  backgroundColor: '#FAF8F5',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  color: 'var(--text-primary)',
+                  cursor: 'pointer',
+                  outline: 'none'
+                }}
+              >
+                <option value="my_order">⇅ My order</option>
+                <option value="due_date">Due date</option>
+                <option value="priority">Priority</option>
+                <option value="alphabetical">Alphabetical</option>
+              </select>
+              <ChevronDown size={14} style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-muted)' }} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 4. MAIN VIEW CONTENT */}
+
+      {/* VIEW A: LIST VIEW (Matching Screenshot 1) */}
+      {activeTab === 'list' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {filteredTasks.length > 0 ? (
-            filteredTasks.map((task) => {
+            filteredTasks.map((task, idx) => {
               const isCompleted = task.status === 'completed';
-              const due = formatDueDate(task.dueDate);
-              const subtasks = task.subtasks || [];
-              const completedSubtasks = subtasks.filter((s) => s.isCompleted).length;
+              const dueLabel = formatDueDateLabel(task.dueDate);
+
+              // Priority style
+              const priorityColors = {
+                urgent: { bg: '#FEE2E2', text: '#991B1B' },
+                high: { bg: '#C25508', text: '#FFFFFF' },
+                medium: { bg: '#FEF3C7', text: '#92400E' },
+                low: { bg: '#DCFCE7', text: '#166534' }
+              };
+              const pStyle = priorityColors[task.priority] || priorityColors.medium;
 
               return (
                 <div
                   key={task._id}
-                  className={`task-preview-item ${isCompleted ? 'task-card-completed' : ''}`}
                   draggable
                   onDragStart={(e) => handleDragStart(e, task._id)}
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleDrop(e, idx)}
                   style={{
                     backgroundColor: '#FFFFFF',
-                    padding: '1rem 1.25rem',
-                    borderRadius: 'var(--radius-md)',
+                    borderRadius: '20px',
+                    padding: '1.25rem 1.5rem',
                     border: '1px solid rgba(87, 83, 78, 0.12)',
-                    cursor: 'default',
+                    boxShadow: '0 2px 10px rgba(44, 30, 16, 0.03)',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '1rem',
+                    transition: 'var(--transition)'
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1, minWidth: 0 }}>
-                    <div style={{ cursor: 'grab', color: '#A8A29E', display: 'flex', alignItems: 'center' }}>
-                      <GripVertical size={16} />
-                    </div>
+                  {/* Drag Handle */}
+                  <div style={{ cursor: 'grab', color: '#A8A29E', marginTop: '0.2rem' }}>
+                    <GripVertical size={18} />
+                  </div>
 
-                    <input
-                      type="checkbox"
-                      className="custom-checkbox"
-                      checked={isCompleted}
-                      onChange={() => onToggleTask(task._id, isCompleted ? 'todo' : 'completed')}
-                    />
+                  {/* Circular Status Checkbox */}
+                  <button
+                    type="button"
+                    onClick={() => onToggleTask(task._id, isCompleted ? 'todo' : 'completed')}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: 0,
+                      marginTop: '0.15rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: isCompleted ? '#16A34A' : '#A8A29E'
+                    }}
+                  >
+                    {isCompleted ? (
+                      <CheckCircle2 size={22} color="#16A34A" />
+                    ) : (
+                      <Circle size={22} color="#A8A29E" strokeWidth={1.8} />
+                    )}
+                  </button>
 
-                    <div
-                      style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
-                      onClick={() => onOpenTaskDetail(task)}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                  {/* Task Content */}
+                  <div
+                    style={{ flex: 1, cursor: 'pointer' }}
+                    onClick={() => onOpenTaskDetail(task)}
+                  >
+                    {/* Title + Badges */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap', marginBottom: '0.35rem' }}>
+                      <span
+                        style={{
+                          fontWeight: 700,
+                          fontSize: '1.1rem',
+                          color: isCompleted ? 'var(--text-muted)' : 'var(--text-primary)',
+                          textDecoration: isCompleted ? 'line-through' : 'none'
+                        }}
+                      >
+                        {task.title}
+                      </span>
+
+                      {/* Priority Badge */}
+                      {task.priority && (
                         <span
                           style={{
+                            fontSize: '0.75rem',
                             fontWeight: 600,
-                            fontSize: '0.95rem',
-                            color: isCompleted ? 'var(--text-muted)' : 'var(--text-primary)',
-                            textDecoration: isCompleted ? 'line-through' : 'none',
+                            padding: '0.15rem 0.55rem',
+                            borderRadius: '100px',
+                            backgroundColor: pStyle.bg,
+                            color: pStyle.text
                           }}
                         >
-                          {task.title}
+                          {task.priority}
                         </span>
+                      )}
 
-                        {subtasks.length > 0 && (
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', backgroundColor: '#F3EFEA', padding: '0.1rem 0.45rem', borderRadius: '4px' }}>
-                            ✓ {completedSubtasks}/{subtasks.length}
-                          </span>
-                        )}
-                      </div>
-
-                      {task.description && (
-                        <p
+                      {/* Category Badge */}
+                      {task.category && (
+                        <span
                           style={{
-                            fontSize: '0.825rem',
-                            color: 'var(--text-muted)',
-                            marginTop: '0.2rem',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            padding: '0.15rem 0.65rem',
+                            borderRadius: '100px',
+                            backgroundColor: '#EAE6E1',
+                            color: 'var(--text-secondary)'
                           }}
                         >
-                          {task.description}
-                        </p>
+                          {task.category}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Description snippet */}
+                    {task.description && (
+                      <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', lineHeight: 1.4 }}>
+                        {task.description}
+                      </p>
+                    )}
+
+                    {/* Meta sub-row: Status & Due Date */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', fontSize: '0.825rem', color: 'var(--text-muted)' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <Circle size={12} strokeWidth={2} />
+                        {task.status === 'completed' ? 'Done' : task.status === 'in_progress' ? 'In progress' : 'To do'}
+                      </span>
+
+                      {dueLabel && (
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#57534E', fontWeight: 500 }}>
+                          <CalendarIcon size={14} />
+                          {dueLabel}
+                        </span>
                       )}
                     </div>
                   </div>
 
-                  {/* Right Tags & Actions */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                    {due && (
-                      <span
-                        style={{
-                          fontSize: '0.775rem',
-                          fontWeight: 500,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.3rem',
-                          color: due.isPast && !isCompleted ? '#DC2626' : due.isToday ? '#D97706' : 'var(--text-secondary)',
-                          backgroundColor: due.isPast && !isCompleted ? '#FEE2E2' : '#FAF5EE',
-                          padding: '0.2rem 0.55rem',
-                          borderRadius: 'var(--radius-full)',
-                        }}
-                      >
-                        <Calendar size={12} /> {due.text}
-                      </span>
-                    )}
-
-                    <span className={`tag-priority-${task.priority}`}>{task.priority}</span>
-                    <span className={`tag-category tag-cat-${task.category}`}>{task.category}</span>
-
+                  {/* Quick action buttons on hover */}
+                  <div style={{ display: 'flex', gap: '0.4rem', marginLeft: 'auto' }}>
                     <button
                       className="btn btn-ghost btn-sm"
-                      style={{ padding: '0.3rem', color: 'var(--text-secondary)' }}
+                      style={{ padding: '0.35rem', color: 'var(--text-muted)' }}
                       onClick={() => onEditTask(task)}
                       title="Edit task"
                     >
                       <Edit3 size={15} />
                     </button>
-
                     <button
                       className="btn btn-ghost btn-sm"
-                      style={{ padding: '0.3rem', color: '#DC2626' }}
-                      onClick={() => {
-                        if (window.confirm('Delete this task?')) onDeleteTask(task._id);
-                      }}
+                      style={{ padding: '0.35rem', color: '#DC2626' }}
+                      onClick={() => onDeleteTask(task._id)}
                       title="Delete task"
                     >
                       <Trash2 size={15} />
@@ -315,304 +782,253 @@ export function Dashboard({
           ) : (
             <div
               style={{
+                backgroundColor: '#FFFFFF',
+                borderRadius: '20px',
+                padding: '3rem 2rem',
                 textAlign: 'center',
-                padding: '4rem 2rem',
-                background: '#FFFFFF',
-                borderRadius: 'var(--radius-lg)',
-                border: '1px solid rgba(87, 83, 78, 0.1)',
+                border: '1px solid rgba(87, 83, 78, 0.12)'
               }}
             >
-              <Inbox size={40} color="#A8A29E" style={{ margin: '0 auto 1rem' }} />
-              <h3 className="font-serif" style={{ fontSize: '1.4rem', color: 'var(--text-primary)', marginBottom: '0.4rem' }}>
-                No tasks found
-              </h3>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.925rem', marginBottom: '1.25rem' }}>
-                {searchQuery ? 'Try clearing your search query or filters.' : 'Get started by creating your very first task.'}
+              <h3 className="font-serif" style={{ fontSize: '1.3rem', marginBottom: '0.5rem' }}>No tasks found</h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.925rem', marginBottom: '1.25rem' }}>
+                Create a task to get started organizing your day.
               </p>
-              <button className="btn btn-primary btn-sm" onClick={onOpenNewTask}>
-                <Plus size={15} /> Create Task
+              <button className="btn btn-primary" onClick={() => onOpenNewTask()}>
+                <Plus size={16} /> Create task
               </button>
             </div>
           )}
         </div>
       )}
 
-      {/* VIEW 2: KANBAN BOARD */}
-      {currentView === 'kanban' && (
-        <div className="kanban-grid">
-          {[
-            { id: 'todo', title: 'To Do', color: '#6B7280' },
-            { id: 'in_progress', title: 'In Progress', color: '#3B82F6' },
-            { id: 'review', title: 'In Review', color: '#F59E0B' },
-            { id: 'completed', title: 'Completed', color: '#10B981' },
-          ].map((col) => {
-            const colTasks = filteredTasks.filter((t) => t.status === col.id);
+      {/* VIEW B: CALENDAR VIEW (Matching Screenshots 2 & 3) */}
+      {activeTab === 'calendar' && (
+        <div
+          style={{
+            backgroundColor: '#FFFFFF',
+            borderRadius: '24px',
+            padding: '2rem',
+            border: '1px solid rgba(87, 83, 78, 0.12)',
+            boxShadow: '0 4px 20px rgba(44, 30, 16, 0.04)'
+          }}
+        >
+          {/* Calendar Top Bar */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.75rem' }}>
+            <h2
+              className="font-serif"
+              style={{
+                fontSize: '2rem',
+                fontWeight: 700,
+                color: 'var(--text-primary)',
+                letterSpacing: '-0.02em'
+              }}
+            >
+              {MONTH_NAMES[currentDate.getMonth()]} {currentDate.getFullYear()}
+            </h2>
 
-            return (
-              <div
-                key={col.id}
-                className="kanban-column"
-                onDragOver={handleDragOver}
-                onDrop={(e) => handleDrop(e, col.id)}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <button
+                onClick={goToToday}
+                style={{
+                  padding: '0.4rem 1rem',
+                  borderRadius: '100px',
+                  border: '1px solid rgba(87, 83, 78, 0.15)',
+                  backgroundColor: '#FFFFFF',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  color: 'var(--text-primary)'
+                }}
               >
-                <div className="column-header">
-                  <div className="column-title">
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: col.color }} />
-                    <span>{col.title}</span>
-                  </div>
-                  <span className="column-count">{colTasks.length}</span>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1 }}>
-                  {colTasks.map((task) => (
-                    <div
-                      key={task._id}
-                      className="task-card"
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, task._id)}
-                      onClick={() => onOpenTaskDetail(task)}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
-                        <span style={{ fontWeight: 600, fontSize: '0.925rem', color: 'var(--text-primary)' }}>
-                          {task.title}
-                        </span>
-                        <span className={`tag-priority-${task.priority}`} style={{ fontSize: '0.7rem' }}>
-                          {task.priority}
-                        </span>
-                      </div>
-
-                      {task.description && (
-                        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
-                          {task.description}
-                        </p>
-                      )}
-
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.4rem' }}>
-                        <span className={`tag-category tag-cat-${task.category}`}>{task.category}</span>
-                        {task.dueDate && (
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                            <Calendar size={11} /> {new Date(task.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-
-                  {colTasks.length === 0 && (
-                    <div
-                      style={{
-                        padding: '2rem 1rem',
-                        textAlign: 'center',
-                        color: 'var(--text-muted)',
-                        fontSize: '0.825rem',
-                        border: '1px dashed rgba(87, 83, 78, 0.2)',
-                        borderRadius: 'var(--radius-md)',
-                      }}
-                    >
-                      Drop tasks here
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* VIEW 3: DEADLINES VIEW */}
-      {currentView === 'deadlines' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          {[
-            {
-              title: '🚨 Overdue',
-              filter: (t) => t.dueDate && new Date(t.dueDate) < new Date() && t.status !== 'completed',
-              color: '#DC2626',
-            },
-            {
-              title: '📅 Due Today',
-              filter: (t) => t.dueDate && new Date(t.dueDate).toDateString() === new Date().toDateString(),
-              color: '#D97706',
-            },
-            {
-              title: '⏳ Upcoming Next 7 Days',
-              filter: (t) => {
-                if (!t.dueDate) return false;
-                const d = new Date(t.dueDate);
-                const now = new Date();
-                const weekLater = new Date();
-                weekLater.setDate(now.getDate() + 7);
-                return d > now && d <= weekLater;
-              },
-              color: '#2563EB',
-            },
-            {
-              title: '🌱 Later / No Due Date',
-              filter: (t) => !t.dueDate || new Date(t.dueDate) > new Date(Date.now() + 7 * 24 * 3600 * 1000),
-              color: '#4B5563',
-            },
-          ].map((group) => {
-            const groupTasks = filteredTasks.filter(group.filter);
-
-            return (
-              <div key={group.title} className="card-clean" style={{ padding: '1.5rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                  <h3 className="font-serif" style={{ fontSize: '1.25rem', color: group.color, fontWeight: 600 }}>
-                    {group.title}
-                  </h3>
-                  <span className="column-count">{groupTasks.length}</span>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                  {groupTasks.map((task) => (
-                    <div
-                      key={task._id}
-                      className="task-preview-item"
-                      style={{ cursor: 'pointer' }}
-                      onClick={() => onOpenTaskDetail(task)}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-                        <input
-                          type="checkbox"
-                          className="custom-checkbox"
-                          checked={task.status === 'completed'}
-                          onChange={() => onToggleTask(task._id, task.status === 'completed' ? 'todo' : 'completed')}
-                        />
-                        <span style={{ fontWeight: 500, textDecoration: task.status === 'completed' ? 'line-through' : 'none' }}>
-                          {task.title}
-                        </span>
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                        {task.dueDate && (
-                          <span style={{ fontSize: '0.785rem', color: 'var(--text-secondary)' }}>
-                            {new Date(task.dueDate).toLocaleDateString()}
-                          </span>
-                        )}
-                        <span className={`tag-priority-${task.priority}`}>{task.priority}</span>
-                        <span className={`tag-category tag-cat-${task.category}`}>{task.category}</span>
-                      </div>
-                    </div>
-                  ))}
-
-                  {groupTasks.length === 0 && (
-                    <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem', padding: '0.5rem 0' }}>
-                      No tasks in this timeframe.
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* VIEW 4: ANALYTICS & INSIGHTS */}
-      {currentView === 'analytics' && (
-        <div>
-          {/* Key Metrics Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
-            <div className="card-clean">
-              <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
-                Total Tasks
-              </div>
-              <div style={{ fontSize: '2.4rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-serif)' }}>
-                {stats.total}
-              </div>
-            </div>
-
-            <div className="card-clean">
-              <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
-                Completion Rate
-              </div>
-              <div style={{ fontSize: '2.4rem', fontWeight: 700, color: '#10B981', fontFamily: 'var(--font-serif)' }}>
-                {stats.rate}%
-              </div>
-            </div>
-
-            <div className="card-clean">
-              <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
-                Pending Tasks
-              </div>
-              <div style={{ fontSize: '2.4rem', fontWeight: 700, color: 'var(--accent-terracotta)', fontFamily: 'var(--font-serif)' }}>
-                {stats.pending}
-              </div>
-            </div>
-
-            <div className="card-clean">
-              <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
-                Urgent & High
-              </div>
-              <div style={{ fontSize: '2.4rem', fontWeight: 700, color: '#EF4444', fontFamily: 'var(--font-serif)' }}>
-                {stats.urgentCount}
-              </div>
+                Today
+              </button>
+              <button
+                onClick={prevMonth}
+                style={{
+                  width: '34px',
+                  height: '34px',
+                  borderRadius: '50%',
+                  border: '1px solid rgba(87, 83, 78, 0.15)',
+                  backgroundColor: '#FFFFFF',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: 'var(--text-primary)'
+                }}
+              >
+                <ChevronLeft size={18} />
+              </button>
+              <button
+                onClick={nextMonth}
+                style={{
+                  width: '34px',
+                  height: '34px',
+                  borderRadius: '50%',
+                  border: '1px solid rgba(87, 83, 78, 0.15)',
+                  backgroundColor: '#FFFFFF',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: 'var(--text-primary)'
+                }}
+              >
+                <ChevronRight size={18} />
+              </button>
             </div>
           </div>
 
-          {/* Breakdown Charts */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
-            {/* Priority Distribution */}
-            <div className="card-clean">
-              <h3 className="font-serif" style={{ fontSize: '1.35rem', marginBottom: '1.25rem', color: 'var(--text-primary)' }}>
-                Priority Distribution
-              </h3>
-              {['urgent', 'high', 'medium', 'low'].map((p) => {
-                const count = tasks.filter((t) => t.priority === p).length;
-                const percent = stats.total > 0 ? Math.round((count / stats.total) * 100) : 0;
+          {/* Days of Week Headers */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(7, 1fr)',
+              textAlign: 'center',
+              fontWeight: 700,
+              fontSize: '0.8rem',
+              color: 'var(--text-secondary)',
+              letterSpacing: '0.05em',
+              paddingBottom: '1rem',
+              borderBottom: '1px solid rgba(87, 83, 78, 0.08)'
+            }}
+          >
+            {DAYS_OF_WEEK.map((d) => (
+              <div key={d}>{d}</div>
+            ))}
+          </div>
 
-                return (
-                  <div key={p} style={{ marginBottom: '1rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.35rem' }}>
-                      <span style={{ textTransform: 'capitalize', fontWeight: 600 }}>{p}</span>
-                      <span>{count} tasks ({percent}%)</span>
-                    </div>
-                    <div style={{ height: '8px', backgroundColor: '#F1EFEA', borderRadius: '4px', overflow: 'hidden' }}>
-                      <div
+          {/* Calendar Month Grid */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(7, 1fr)',
+              borderBottom: '1px solid rgba(87, 83, 78, 0.08)'
+            }}
+          >
+            {calendarData.map((cell, idx) => {
+              const dayTasks = getTasksForDate(cell.date);
+              const isToday = isTodayDate(cell.date);
+
+              return (
+                <div
+                  key={idx}
+                  onClick={() => onOpenNewTask(cell.date)}
+                  style={{
+                    minHeight: '100px',
+                    padding: '0.75rem 0.5rem',
+                    borderRight: (idx + 1) % 7 === 0 ? 'none' : '1px solid rgba(87, 83, 78, 0.06)',
+                    borderTop: idx < 7 ? 'none' : '1px solid rgba(87, 83, 78, 0.06)',
+                    backgroundColor: cell.isCurrentMonth ? '#FFFFFF' : '#FAF9F6',
+                    cursor: 'pointer',
+                    position: 'relative',
+                    transition: 'background-color 0.15s'
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F5F2EC')}
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.backgroundColor = cell.isCurrentMonth ? '#FFFFFF' : '#FAF9F6')
+                  }
+                >
+                  {/* Day Number Header */}
+                  <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '0.4rem' }}>
+                    {isToday ? (
+                      <span
                         style={{
-                          width: `${percent}%`,
-                          height: '100%',
-                          backgroundColor:
-                            p === 'urgent'
-                              ? '#EF4444'
-                              : p === 'high'
-                              ? '#F97316'
-                              : p === 'medium'
-                              ? '#F59E0B'
-                              : '#10B981',
+                          width: '26px',
+                          height: '26px',
+                          borderRadius: '50%',
+                          backgroundColor: '#C25508',
+                          color: '#FFFFFF',
+                          fontWeight: 700,
+                          fontSize: '0.85rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
                         }}
-                      />
-                    </div>
+                      >
+                        {cell.dayNumber}
+                      </span>
+                    ) : (
+                      <span
+                        style={{
+                          fontSize: '0.85rem',
+                          fontWeight: 600,
+                          color: cell.isCurrentMonth ? 'var(--text-primary)' : '#A8A29E',
+                          paddingLeft: '0.2rem'
+                        }}
+                      >
+                        {cell.dayNumber}
+                      </span>
+                    )}
                   </div>
-                );
-              })}
+
+                  {/* Task Chips for Day */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                    {dayTasks.map((t) => {
+                      // Color chip according to priority
+                      const chipStyles = {
+                        urgent: { bg: '#FEE2E2', text: '#991B1B', border: '#FECACA' },
+                        high: { bg: '#FEE2E2', text: '#991B1B', border: '#FECACA' },
+                        medium: { bg: '#FEF3C7', text: '#92400E', border: '#FDE68A' },
+                        low: { bg: '#DCFCE7', text: '#166534', border: '#BBF7D0' }
+                      };
+                      const style = chipStyles[t.priority] || chipStyles.medium;
+
+                      return (
+                        <div
+                          key={t._id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onOpenTaskDetail(t);
+                          }}
+                          style={{
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            padding: '0.25rem 0.5rem',
+                            borderRadius: '6px',
+                            backgroundColor: style.bg,
+                            color: style.text,
+                            border: `1px solid ${style.border}`,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
+                          }}
+                          title={t.title}
+                        >
+                          {t.title}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Calendar Footer Legend */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '1.5rem',
+              paddingTop: '1.25rem',
+              fontSize: '0.825rem',
+              color: 'var(--text-secondary)',
+              fontWeight: 500
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#EF4444' }} />
+              <span>High priority</span>
             </div>
-
-            {/* Category Breakdown */}
-            <div className="card-clean">
-              <h3 className="font-serif" style={{ fontSize: '1.35rem', marginBottom: '1.25rem', color: 'var(--text-primary)' }}>
-                Category Breakdown
-              </h3>
-              {availableCategories.filter((c) => c !== 'all').map((cat) => {
-                const count = tasks.filter((t) => t.category === cat).length;
-                const percent = stats.total > 0 ? Math.round((count / stats.total) * 100) : 0;
-
-                return (
-                  <div key={cat} style={{ marginBottom: '1rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.35rem' }}>
-                      <span style={{ fontWeight: 600 }}>{cat}</span>
-                      <span>{count} tasks ({percent}%)</span>
-                    </div>
-                    <div style={{ height: '8px', backgroundColor: '#F1EFEA', borderRadius: '4px', overflow: 'hidden' }}>
-                      <div
-                        style={{
-                          width: `${percent}%`,
-                          height: '100%',
-                          backgroundColor: 'var(--accent-terracotta)',
-                        }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#F59E0B' }} />
+              <span>Medium priority</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#10B981' }} />
+              <span>Low priority</span>
             </div>
           </div>
         </div>

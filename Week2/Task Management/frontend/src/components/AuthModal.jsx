@@ -11,26 +11,40 @@ export function AuthModal({ initialMode = 'signin', onClose, onSuccess }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Helper to switch modes and reset form cleanly
+  const switchMode = (newMode) => {
+    setMode(newMode);
+    setError('');
+    setPassword('');
+    setShowPassword(false);
+    if (newMode === 'signin') setName('');
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (loading) return;
     setError('');
-    setLoading(true);
 
+    // Client-side validation before making any API call
+    if (!email.trim()) {
+      setError('Please enter your email address.');
+      return;
+    }
+    if (mode === 'signup' && !name.trim()) {
+      setError('Please enter your full name.');
+      return;
+    }
+    if (!password || (mode === 'signup' && password.length < 8)) {
+      setError(mode === 'signup' ? 'Password must be at least 8 characters.' : 'Please enter your password.');
+      return;
+    }
+
+    setLoading(true);
     try {
       if (mode === 'signup') {
-        if (!name.trim()) {
-          throw new Error('Please enter your full name.');
-        }
-        if (!password || password.length < 8) {
-          throw new Error('Password must be at least 8 characters.');
-        }
         const data = await api.signup(name.trim(), email.trim(), password);
         onSuccess(data.user);
       } else {
-        if (!password) {
-          throw new Error('Please enter your password.');
-        }
         const data = await api.signin(email.trim(), password);
         onSuccess(data.user);
       }
@@ -80,7 +94,7 @@ export function AuthModal({ initialMode = 'signin', onClose, onSuccess }) {
         }
       }}
     >
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
         {/* Close Button */}
         <button
           type="button"
@@ -252,11 +266,7 @@ export function AuthModal({ initialMode = 'signin', onClose, onSuccess }) {
               Already have an account?{' '}
               <a
                 href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setMode('signin');
-                  setError('');
-                }}
+                onClick={(e) => { e.preventDefault(); switchMode('signin'); }}
                 style={{ color: 'var(--accent-terracotta)', fontWeight: 600, textDecoration: 'none' }}
               >
                 Sign in
@@ -267,11 +277,7 @@ export function AuthModal({ initialMode = 'signin', onClose, onSuccess }) {
               Don't have an account?{' '}
               <a
                 href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setMode('signup');
-                  setError('');
-                }}
+                onClick={(e) => { e.preventDefault(); switchMode('signup'); }}
                 style={{ color: 'var(--accent-terracotta)', fontWeight: 600, textDecoration: 'none' }}
               >
                 Sign up

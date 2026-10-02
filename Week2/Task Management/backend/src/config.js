@@ -21,8 +21,8 @@ export const config = {
 
   // Push notifications
   vapid: {
-    publicKey: process.env.VAPID_PUBLIC_KEY || "dummy_public_key",
-    privateKey: process.env.VAPID_PRIVATE_KEY || "dummy_private_key",
+    publicKey: process.env.VAPID_PUBLIC_KEY || null,
+    privateKey: process.env.VAPID_PRIVATE_KEY || null,
     subject: process.env.VAPID_SUBJECT || "mailto:admin@taskmanagement.com"
   },
 

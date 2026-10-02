@@ -1,6 +1,8 @@
 import webpush from "web-push";
 import { config } from "../config.js";
 
+let pushEnabled = false;
+
 try {
   if (config.vapid.publicKey && config.vapid.privateKey) {
     webpush.setVapidDetails(
@@ -8,8 +10,13 @@ try {
       config.vapid.publicKey,
       config.vapid.privateKey
     );
+    pushEnabled = true;
+    console.log("Push notification service initialized (VAPID keys active).");
+  } else {
+    console.log("Push notification service running in simulation mode (no VAPID keys configured).");
   }
-} catch {
+} catch (err) {
+  console.warn("Push notification service failed to initialize:", err.message);
   console.log("Push notification service running in simulation mode.");
 }
 

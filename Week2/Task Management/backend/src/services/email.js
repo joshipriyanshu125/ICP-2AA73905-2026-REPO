@@ -93,3 +93,64 @@ export async function sendPasswordResetEmail(user, resetToken) {
     `,
   });
 }
+
+// For registered users already in the system - adds them and sends notification
+export async function sendWorkspaceInvitationEmail({ to, inviterName, workspaceName, role }) {
+  const loginUrl = `${config.clientOrigin || 'http://localhost:5173'}`;
+  return sendEmail({
+    to,
+    subject: `You've been invited to join "${workspaceName}" on TaskFlow`,
+    html: `
+      <div style="font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; background: #FAF7F2; padding: 32px; border-radius: 16px; border: 1px solid rgba(87, 83, 78, 0.15);">
+        <h1 style="color: #C25508; font-size: 24px; margin: 0 0 24px 0; font-family: serif;">TaskFlow</h1>
+        <h2 style="color: #1C1917; font-size: 20px; margin-bottom: 12px;">Workspace Invitation</h2>
+        <p style="color: #57534E; font-size: 15px; line-height: 1.6;">
+          <strong>${inviterName || 'A teammate'}</strong> has added you to the <strong>${workspaceName}</strong> workspace as a <strong>${role || 'member'}</strong>.
+        </p>
+        <p style="color: #57534E; font-size: 15px; line-height: 1.6;">
+          You can now collaborate on tasks, assign action items, and organize your work together in real-time.
+        </p>
+        <div style="margin: 28px 0; text-align: center;">
+          <a href="${loginUrl}" style="background: #C25508; color: #FFFFFF; padding: 14px 28px; text-decoration: none; border-radius: 100px; font-weight: 600; display: inline-block; font-size: 15px;">
+            Open TaskFlow &amp; Get Started
+          </a>
+        </div>
+        <hr style="border: none; border-top: 1px solid rgba(87, 83, 78, 0.15); margin: 24px 0;">
+        <p style="color: #8A847C; font-size: 13px; margin: 0;">- The TaskFlow Team</p>
+      </div>
+    `,
+  });
+}
+
+// For non-registered users - sends a signup invitation link
+export async function sendWorkspaceInviteToNewUser({ to, inviterName, workspaceName, role, signupLink }) {
+  const finalLink = signupLink || `${config.clientOrigin || 'http://localhost:5173'}`;
+  return sendEmail({
+    to,
+    subject: `${inviterName || 'Someone'} invited you to join "${workspaceName}" on TaskFlow`,
+    html: `
+      <div style="font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; background: #FAF7F2; padding: 32px; border-radius: 16px; border: 1px solid rgba(87, 83, 78, 0.15);">
+        <h1 style="color: #C25508; font-size: 24px; margin: 0 0 24px 0; font-family: serif;">TaskFlow</h1>
+        <h2 style="color: #1C1917; font-size: 20px; margin-bottom: 12px;">You're Invited!</h2>
+        <p style="color: #57534E; font-size: 15px; line-height: 1.6;">
+          <strong>${inviterName || 'A teammate'}</strong> has invited you to join the <strong>${workspaceName}</strong> workspace on TaskFlow as a <strong>${role || 'member'}</strong>.
+        </p>
+        <p style="color: #57534E; font-size: 15px; line-height: 1.6;">
+          TaskFlow is a collaborative task management platform. Create a free account to start working together with your team.
+        </p>
+        <div style="margin: 28px 0; text-align: center;">
+          <a href="${finalLink}" style="background: #C25508; color: #FFFFFF; padding: 14px 28px; text-decoration: none; border-radius: 100px; font-weight: 600; display: inline-block; font-size: 15px;">
+            Accept Invitation &amp; Sign Up
+          </a>
+        </div>
+        <div style="background: #F0EBE3; border-radius: 10px; padding: 14px 18px; margin-bottom: 20px;">
+          <p style="color: #57534E; font-size: 13px; margin: 0;">
+            <strong>Tip:</strong> Sign up using this email address (<strong>${to}</strong>) so your invitation is automatically recognized.
+          </p>
+        </div>
+        <hr style="border: none; border-top: 1px solid rgba(87, 83, 78, 0.15); margin: 24px 0;">
+        <p style="color: #8A847C; font-size: 13px; margin: 0;">- The TaskFlow Team</p>
+      </div>
+    `,
+  });
+}

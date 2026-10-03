@@ -8,17 +8,29 @@ export function WorkspaceModal({ isOpen, onClose, onWorkspaceCreated, currentWor
   const [description, setDescription] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('member');
+  const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+
+  const fetchMembers = React.useCallback(async () => {
+    if (!currentWorkspace?._id) return;
+    try {
+      const res = await api.getWorkspaceMembers(currentWorkspace._id);
+      if (res?.members) setMembers(res.members);
+    } catch (e) {
+      // ignore
+    }
+  }, [currentWorkspace]);
 
   React.useEffect(() => {
     if (isOpen) {
       setActiveTab(initialTab);
       setSuccessMsg('');
       setErrorMsg('');
+      fetchMembers();
     }
-  }, [isOpen, initialTab]);
+  }, [isOpen, initialTab, fetchMembers]);
 
   if (!isOpen) return null;
 
@@ -51,11 +63,18 @@ export function WorkspaceModal({ isOpen, onClose, onWorkspaceCreated, currentWor
     setSuccessMsg('');
 
     try {
-      await api.inviteMember(currentWorkspace._id, inviteEmail.trim(), inviteRole);
-      setSuccessMsg(`Invitation sent to ${inviteEmail}!`);
+      const res = await api.inviteMember(currentWorkspace._id, inviteEmail.trim(), inviteRole);
+      if (res?.alreadyRegistered === false) {
+        // Non-registered user — invite email sent
+        setSuccessMsg(`📧 Invitation email sent to ${inviteEmail}! They'll be added once they sign up.`);
+      } else {
+        // Registered user — added directly + email sent
+        setSuccessMsg(res?.message || `✅ ${inviteEmail} has been added to the workspace!`);
+        await fetchMembers();
+      }
       setInviteEmail('');
     } catch (err) {
-      setErrorMsg(err.message || 'Failed to invite user. Ensure user email exists in the system.');
+      setErrorMsg(err.message || 'Failed to send invitation. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -178,42 +197,81 @@ export function WorkspaceModal({ isOpen, onClose, onWorkspaceCreated, currentWor
 
         {/* Tab 2: Invite Member */}
         {activeTab === 'invite' && (
-          <form onSubmit={handleInviteMember}>
-            <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
-              Invite a teammate to <strong>{currentWorkspace?.name || 'this workspace'}</strong>.
-            </p>
+          <div>
+            <form onSubmit={handleInviteMember} style={{ marginBottom: '1.5rem' }}>
+              <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
+                Invite anyone to <strong>{currentWorkspace?.name || 'this workspace'}</strong> by email. If they're not registered yet, they'll receive a sign-up link.
+              </p>
 
-            <div className="form-group">
-              <label className="form-label">Teammate Email *</label>
-              <input
-                type="email"
-                className="form-input"
-                placeholder="colleague@taskflow.dev"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-                required
-                autoFocus
-              />
-            </div>
+              <div className="form-group">
+                <label className="form-label">Teammate Email *</label>
+                <input
+                  type="email"
+                  className="form-input"
+                  placeholder="colleague@taskflow.dev"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  required
+                  autoFocus
+                />
+              </div>
 
-            <div className="form-group" style={{ marginBottom: '1.75rem' }}>
-              <label className="form-label">Role</label>
-              <select className="form-select" value={inviteRole} onChange={(e) => setInviteRole(e.target.value)}>
-                <option value="member">Member (Can edit tasks)</option>
-                <option value="admin">Admin (Can manage settings)</option>
-                <option value="viewer">Viewer (Read-only)</option>
-              </select>
-            </div>
+              <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+                <label className="form-label">Role</label>
+                <select className="form-select" value={inviteRole} onChange={(e) => setInviteRole(e.target.value)}>
+                  <option value="member">Member (Can edit tasks)</option>
+                  <option value="admin">Admin (Can manage settings)</option>
+                  <option value="viewer">Viewer (Read-only)</option>
+                </select>
+              </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-              <button type="button" className="btn btn-secondary" onClick={onClose}>
-                Close
-              </button>
-              <button type="submit" className="btn btn-primary" disabled={loading}>
-                {loading ? 'Sending...' : 'Send Invite'}
-              </button>
-            </div>
-          </form>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                <button type="button" className="btn btn-secondary" onClick={onClose}>
+                  Close
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={loading}>
+                  {loading ? 'Sending...' : 'Send Invite'}
+                </button>
+              </div>
+            </form>
+
+            {/* Current Workspace Members List */}
+            {members && members.length > 0 && (
+              <div style={{ borderTop: '1px solid rgba(87, 83, 78, 0.12)', paddingTop: '1rem' }}>
+                <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.6rem' }}>
+                  Current Workspace Members ({members.length})
+                </h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', maxHeight: '140px', overflowY: 'auto' }}>
+                  {members.map((m) => (
+                    <div
+                      key={m._id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '0.4rem 0.6rem',
+                        backgroundColor: '#F8F6F0',
+                        borderRadius: '8px',
+                        fontSize: '0.825rem'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div style={{ width: 22, height: 22, borderRadius: '50%', backgroundColor: '#E4DDD2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700 }}>
+                          {(m.userId?.name || m.userId?.email || 'U').charAt(0).toUpperCase()}
+                        </div>
+                        <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                          {m.userId?.name || m.userId?.email}
+                        </span>
+                      </div>
+                      <span style={{ fontSize: '0.7rem', padding: '1px 6px', borderRadius: '100px', backgroundColor: '#EAE6DF', textTransform: 'capitalize', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                        {m.role}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>

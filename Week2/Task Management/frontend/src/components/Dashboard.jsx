@@ -14,7 +14,9 @@ import {
   ChevronDown,
   Clock,
   Trash2,
-  Edit3
+  Edit3,
+  User as UserIcon,
+  UserPlus
 } from 'lucide-react';
 
 const MONTH_NAMES = [
@@ -32,6 +34,8 @@ export function Dashboard({
   onOpenTaskDetail, 
   onDeleteTask, 
   onReorderTasks,
+  onOpenWorkspaceModal,
+  currentWorkspace,
   user
 }) {
   const [activeTab, setActiveTab] = useState('list'); // 'list' | 'calendar'
@@ -264,25 +268,47 @@ export function Dashboard({
           </p>
         </div>
 
-        <button
-          className="btn btn-primary"
-          onClick={() => onOpenNewTask()}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            padding: '0.75rem 1.4rem',
-            fontSize: '0.95rem',
-            fontWeight: 600,
-            borderRadius: '12px',
-            backgroundColor: '#C25508',
-            color: '#FFFFFF',
-            border: 'none',
-            boxShadow: '0 4px 12px rgba(194, 85, 8, 0.25)'
-          }}
-        >
-          <Plus size={18} strokeWidth={2.5} /> New task
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <button
+            className="btn btn-secondary"
+            onClick={() => onOpenWorkspaceModal?.('invite')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              padding: '0.75rem 1.25rem',
+              fontSize: '0.95rem',
+              fontWeight: 600,
+              borderRadius: '12px',
+              backgroundColor: '#FFFFFF',
+              borderColor: 'rgba(87, 83, 78, 0.2)',
+              color: 'var(--text-primary)',
+              boxShadow: '0 2px 6px rgba(44, 30, 16, 0.04)'
+            }}
+          >
+            <UserPlus size={17} color="#C25508" /> Invite Teammates
+          </button>
+
+          <button
+            className="btn btn-primary"
+            onClick={() => onOpenNewTask()}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              padding: '0.75rem 1.4rem',
+              fontSize: '0.95rem',
+              fontWeight: 600,
+              borderRadius: '12px',
+              backgroundColor: '#C25508',
+              color: '#FFFFFF',
+              border: 'none',
+              boxShadow: '0 4px 12px rgba(194, 85, 8, 0.25)'
+            }}
+          >
+            <Plus size={18} strokeWidth={2.5} /> New task
+          </button>
+        </div>
       </div>
 
       {/* 2. Top 4 Metric Cards */}
@@ -730,6 +756,26 @@ export function Dashboard({
                           }}
                         >
                           {task.category}
+                        </span>
+                      )}
+
+                      {/* Assignee Badge */}
+                      {task.assigneeId && (
+                        <span
+                          style={{
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            padding: '0.15rem 0.65rem',
+                            borderRadius: '100px',
+                            backgroundColor: '#F1ECE4',
+                            color: '#57534E',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.3rem'
+                          }}
+                        >
+                          <UserIcon size={12} />
+                          {typeof task.assigneeId === 'object' ? (task.assigneeId.name || task.assigneeId.email) : 'Assigned'}
                         </span>
                       )}
                     </div>

@@ -232,6 +232,8 @@ export function App() {
             <Dashboard
               tasks={tasks}
               user={user}
+              currentWorkspace={currentWorkspace}
+              onOpenWorkspaceModal={(tab = 'invite') => setWorkspaceModalState({ isOpen: true, tab })}
               onToggleTask={handleToggleTask}
               onOpenNewTask={(date) => setTaskModal({ isOpen: true, task: null, defaultDate: date || null })}
               onEditTask={(task) => setTaskModal({ isOpen: true, task, defaultDate: null })}

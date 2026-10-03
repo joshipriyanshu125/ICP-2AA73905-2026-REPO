@@ -9,21 +9,58 @@ import {
   Check, 
   ShieldCheck, 
   Zap, 
-  Layers 
+  Layers,
+  Plus,
+  Trash2,
+  Clock,
+  TrendingUp
 } from 'lucide-react';
 
 export function LandingPage({ onOpenAuth }) {
-  // Interactive preview items on landing page
-  const [demoTasks, setDemoTasks] = useState([
-    { id: 1, title: 'Review design mockups', priority: 'high', category: 'Design', completed: false },
-    { id: 2, title: 'Write project brief', priority: 'medium', category: 'Planning', completed: false },
-    { id: 3, title: 'Team standup prep', priority: 'low', category: 'Meetings', completed: true },
-    { id: 4, title: 'Deploy v2.0 API gateway', priority: 'urgent', category: 'Engineering', completed: false }
+  // Live interactive workspace showcase
+  const [tasks, setTasks] = useState([
+    { id: 1, title: '🚀 Production deployment & database migration', priority: 'urgent', category: 'Engineering', due: 'Today', completed: false },
+    { id: 2, title: '🎨 Refine dashboard dark theme & calendar view', priority: 'high', category: 'Design', due: 'Tomorrow', completed: false },
+    { id: 3, title: '🔐 Implement secure password reset & SMTP flow', priority: 'urgent', category: 'Security', due: 'Oct 8', completed: true },
+    { id: 4, title: '⚡ Multi-user real-time WebSocket sync engine', priority: 'medium', category: 'Backend', due: 'Oct 10', completed: true },
+    { id: 5, title: '📨 Automated email digest & daily task summary', priority: 'low', category: 'Automation', due: 'Oct 14', completed: false }
   ]);
 
-  const toggleDemoTask = (id) => {
-    setDemoTasks(prev => prev.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
+  const [activeTab, setActiveTab] = useState('all');
+  const [newTaskTitle, setNewTaskTitle] = useState('');
+
+  const toggleTask = (id) => {
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
   };
+
+  const deleteTask = (e, id) => {
+    e.stopPropagation();
+    setTasks(prev => prev.filter(t => t.id !== id));
+  };
+
+  const handleAddTask = (e) => {
+    e.preventDefault();
+    if (!newTaskTitle.trim()) return;
+    const newTask = {
+      id: Date.now(),
+      title: newTaskTitle.trim(),
+      priority: 'high',
+      category: 'Design',
+      due: 'This week',
+      completed: false
+    };
+    setTasks(prev => [newTask, ...prev]);
+    setNewTaskTitle('');
+  };
+
+  const completedCount = tasks.filter(t => t.completed).length;
+  const progressPercent = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0;
+
+  const filteredTasks = tasks.filter(t => {
+    if (activeTab === 'active') return !t.completed;
+    if (activeTab === 'done') return t.completed;
+    return true;
+  });
 
   return (
     <main>
@@ -144,46 +181,121 @@ export function LandingPage({ onOpenAuth }) {
             </div>
           </div>
 
-          {/* Interactive Live Demo Preview Box */}
+          {/* Live Interactive Workspace Showcase */}
           <div className="task-preview-box">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '0.5rem' }}>
-              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Interactive Preview
-              </span>
-              <span style={{ fontSize: '0.75rem', color: 'var(--accent-terracotta)', fontWeight: 600 }}>
-                Click to try ⚡
-              </span>
+            {/* Top Bar with Project Info & Filters */}
+            <div className="preview-top-bar">
+              <div className="preview-project-badge">
+                <span className="preview-live-dot" />
+                <span>Sprint 4.2 • Core Release</span>
+              </div>
+
+              <div className="preview-filter-tabs">
+                <button 
+                  type="button"
+                  className={`preview-tab-btn ${activeTab === 'all' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('all')}
+                >
+                  All ({tasks.length})
+                </button>
+                <button 
+                  type="button"
+                  className={`preview-tab-btn ${activeTab === 'active' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('active')}
+                >
+                  Active ({tasks.length - completedCount})
+                </button>
+                <button 
+                  type="button"
+                  className={`preview-tab-btn ${activeTab === 'done' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('done')}
+                >
+                  Done ({completedCount})
+                </button>
+              </div>
             </div>
 
-            {demoTasks.map(task => (
-              <div 
-                key={task.id} 
-                className={`task-preview-item ${task.completed ? 'task-card-completed' : ''}`}
-                onClick={() => toggleDemoTask(task.id)}
-                style={{ cursor: 'pointer' }}
-              >
-                <div className="task-preview-left">
-                  <input
-                    type="checkbox"
-                    className="custom-checkbox"
-                    checked={task.completed}
-                    onChange={() => toggleDemoTask(task.id)}
-                  />
-                  <span style={{ textDecoration: task.completed ? 'line-through' : 'none', color: task.completed ? 'var(--text-muted)' : 'var(--text-primary)' }}>
-                    {task.title}
-                  </span>
-                </div>
-
-                <div className="task-preview-tags">
-                  <span className={`tag-priority-${task.priority}`}>
-                    {task.priority}
-                  </span>
-                  <span className={`tag-category tag-cat-${task.category}`}>
-                    {task.category}
-                  </span>
-                </div>
+            {/* Live Progress Bar */}
+            <div className="preview-progress-box">
+              <div className="preview-progress-info">
+                <span>Sprint completion</span>
+                <span>{progressPercent}% ({completedCount}/{tasks.length})</span>
               </div>
-            ))}
+              <div className="preview-progress-track">
+                <div 
+                  className="preview-progress-bar" 
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Task List */}
+            <div className="preview-task-list">
+              {filteredTasks.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                  No tasks in this view
+                </div>
+              ) : (
+                filteredTasks.map(task => (
+                  <div 
+                    key={task.id} 
+                    className={`task-preview-item ${task.completed ? 'completed' : ''}`}
+                    onClick={() => toggleTask(task.id)}
+                  >
+                    <div className="task-preview-left">
+                      <input
+                        type="checkbox"
+                        className="custom-checkbox"
+                        checked={task.completed}
+                        onChange={() => toggleTask(task.id)}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      <span className={`task-preview-title ${task.completed ? 'completed' : ''}`}>
+                        {task.title}
+                      </span>
+                    </div>
+
+                    <div className="task-preview-right">
+                      {task.due && (
+                        <span className="preview-due-tag">
+                          <Clock size={12} />
+                          {task.due}
+                        </span>
+                      )}
+                      <span className={`tag-priority-${task.priority}`}>
+                        {task.priority}
+                      </span>
+                      <span className={`tag-category tag-cat-${task.category}`}>
+                        {task.category}
+                      </span>
+                      <button 
+                        type="button"
+                        className="preview-delete-btn"
+                        title="Delete task"
+                        onClick={(e) => deleteTask(e, task.id)}
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Quick Interactive Add Input */}
+            <form onSubmit={handleAddTask} className="preview-add-form">
+              <input
+                type="text"
+                className="preview-add-input"
+                placeholder="Try adding a task (e.g. 'Deploy staging build')..."
+                value={newTaskTitle}
+                onChange={(e) => setNewTaskTitle(e.target.value)}
+              />
+              <button type="submit" className="preview-add-btn">
+                <Plus size={15} />
+                <span>Add</span>
+              </button>
+            </form>
           </div>
         </div>
       </section>

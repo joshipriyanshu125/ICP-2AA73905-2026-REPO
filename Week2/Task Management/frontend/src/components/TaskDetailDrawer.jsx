@@ -132,9 +132,14 @@ export function TaskDetailDrawer({ task, isOpen, onClose, onUpdateTask, onDelete
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', marginBottom: '1.25rem' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
               <span className={`tag-priority-${task.priority}`}>{task.priority}</span>
               <span className={`tag-category tag-cat-${task.category}`}>{task.category}</span>
+              {task.assigneeId && (
+                <span style={{ fontSize: '0.75rem', background: '#F1ECE4', color: '#57534E', padding: '2px 8px', borderRadius: '100px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                  <User size={12} /> {task.assigneeId.name || task.assigneeId.email || 'Assigned'}
+                </span>
+              )}
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                 Status: <strong>{task.status.replace('_', ' ')}</strong>
               </span>

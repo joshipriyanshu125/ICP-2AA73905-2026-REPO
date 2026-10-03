@@ -21,7 +21,7 @@ userRouter.use(requireAuth);
 
 userRouter.get("/profile", async (req, res, next) => {
   try {
-    const user = await User.findById(req.userId).select("name email avatarUrl timezone preferences isEmailVerified createdAt");
+    const user = await User.findById(req.userId).select("name email role avatarUrl timezone preferences isEmailVerified createdAt");
     if (!user) return res.status(404).json({ message: "User not found." });
     return res.json({ user });
   } catch (error) {
@@ -36,7 +36,7 @@ userRouter.patch("/profile", async (req, res, next) => {
       req.userId,
       { $set: input },
       { new: true, runValidators: true }
-    ).select("name email avatarUrl timezone preferences isEmailVerified createdAt");
+    ).select("name email role avatarUrl timezone preferences isEmailVerified createdAt");
 
     if (!user) return res.status(404).json({ message: "User not found." });
     return res.json({ message: "Profile updated successfully.", user });

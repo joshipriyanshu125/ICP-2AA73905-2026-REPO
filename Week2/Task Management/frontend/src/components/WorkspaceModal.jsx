@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { X, FolderPlus, UserPlus, Loader2, Check } from 'lucide-react';
 import { api } from '../api';
 
-export function WorkspaceModal({ isOpen, onClose, onWorkspaceCreated, currentWorkspace }) {
-  const [activeTab, setActiveTab] = useState('create'); // 'create' | 'invite'
+export function WorkspaceModal({ isOpen, onClose, onWorkspaceCreated, currentWorkspace, initialTab = 'create' }) {
+  const [activeTab, setActiveTab] = useState(initialTab); // 'create' | 'invite'
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
@@ -11,6 +11,14 @@ export function WorkspaceModal({ isOpen, onClose, onWorkspaceCreated, currentWor
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+
+  React.useEffect(() => {
+    if (isOpen) {
+      setActiveTab(initialTab);
+      setSuccessMsg('');
+      setErrorMsg('');
+    }
+  }, [isOpen, initialTab]);
 
   if (!isOpen) return null;
 

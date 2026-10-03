@@ -10,11 +10,15 @@ import { requireAuth } from "../middleware/auth.js";
 // Admin authorization middleware
 async function requireAdmin(req, res, next) {
   try {
-    const role = await UserRole.findOne({ userId: req.userId });
-    if (!role || role.role !== "admin") {
-      return res.status(403).json({ message: "Admin access required." });
+    const user = await User.findById(req.userId);
+    if (user && user.role === "admin") {
+      return next();
     }
-    return next();
+    const role = await UserRole.findOne({ userId: req.userId });
+    if (role && role.role === "admin") {
+      return next();
+    }
+    return res.status(403).json({ message: "Admin access required." });
   } catch (error) {
     return next(error);
   }
@@ -61,7 +65,7 @@ adminRouter.get("/users", async (req, res, next) => {
 
     const [users, total] = await Promise.all([
       User.find(filter)
-        .select("name email avatarUrl timezone isDeleted isEmailVerified createdAt updatedAt")
+        .select("name email role avatarUrl timezone isDeleted isEmailVerified createdAt updatedAt")
         .skip(skip)
         .limit(limit)
         .sort({ createdAt: -1 }),
@@ -83,13 +87,20 @@ adminRouter.patch("/users/:id/role", async (req, res, next) => {
       return res.status(400).json({ message: "Role must be 'user' or 'admin'." });
     }
 
-    const userRole = await UserRole.findOneAndUpdate(
-      { userId: req.params.id },
-      { $set: { role } },
-      { new: true, upsert: true }
-    );
+    const [updatedUser, userRole] = await Promise.all([
+      User.findByIdAndUpdate(
+        req.params.id,
+        { $set: { role } },
+        { new: true }
+      ),
+      UserRole.findOneAndUpdate(
+        { userId: req.params.id },
+        { $set: { role } },
+        { new: true, upsert: true }
+      )
+    ]);
 
-    return res.json({ message: "User role updated.", userRole });
+    return res.json({ message: "User role updated.", role: updatedUser?.role || role, userRole });
   } catch (error) {
     return next(error);
   }

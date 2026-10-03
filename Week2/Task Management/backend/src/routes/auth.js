@@ -11,7 +11,10 @@ import { sendWelcomeEmail, sendPasswordResetEmail } from "../services/email.js";
 import { config } from "../config.js";
 
 const credentials = z.object({ email: z.string().trim().email().max(254), password: z.string().min(8).max(128) });
-const signUp = credentials.extend({ name: z.string().trim().min(2).max(80) });
+const signUp = credentials.extend({ 
+  name: z.string().trim().min(2).max(80),
+  role: z.enum(["user", "admin"]).optional()
+});
 
 export const authRouter = Router();
 
@@ -21,12 +24,14 @@ authRouter.post("/signup", async (req, res, next) => {
     const existing = await User.findOne({ email: input.email.toLowerCase() });
     if (existing) return res.status(409).json({ message: "An account with this email already exists." });
 
+    const assignedRole = input.role || "user";
     const user = await User.create({
       name: input.name,
       email: input.email.toLowerCase(),
-      passwordHash: await bcrypt.hash(input.password, 12)
+      passwordHash: await bcrypt.hash(input.password, 12),
+      role: assignedRole
     });
-    await UserRole.create({ userId: user._id, role: "user" });
+    await UserRole.create({ userId: user._id, role: assignedRole });
 
     // Send welcome email (asynchronous / non-blocking)
     sendWelcomeEmail(user).catch((err) => console.log("Welcome email error:", err.message));
@@ -46,7 +51,7 @@ authRouter.post("/signup", async (req, res, next) => {
     return res.status(201).json({
       token,
       refreshToken,
-      user: { id: user._id, name: user.name, email: user.email }
+      user: { id: user._id, name: user.name, email: user.email, role: user.role }
     });
   } catch (error) {
     return next(error);
@@ -76,7 +81,7 @@ authRouter.post("/signin", async (req, res, next) => {
     return res.json({
       token,
       refreshToken,
-      user: { id: user._id, name: user.name, email: user.email, timezone: user.timezone, avatarUrl: user.avatarUrl }
+      user: { id: user._id, name: user.name, email: user.email, role: user.role || "user", timezone: user.timezone, avatarUrl: user.avatarUrl }
     });
   } catch (error) {
     return next(error);

@@ -263,8 +263,31 @@ class ApiClient {
     return this.request(`/notifications/${id}/read`, { method: 'PATCH' });
   }
 
-  async markAllNotificationsRead() {
-    return this.request('/notifications/read-all', { method: 'PATCH' });
+  // Admin Endpoints
+  async getAdminStats() {
+    return this.request('/admin/stats');
+  }
+
+  async getAdminUsers(params = {}) {
+    const query = new URLSearchParams();
+    if (params.page) query.append('page', params.page);
+    if (params.limit) query.append('limit', params.limit);
+    if (params.search) query.append('search', params.search);
+    const qStr = query.toString() ? `?${query.toString()}` : '';
+    return this.request(`/admin/users${qStr}`);
+  }
+
+  async updateUserRole(userId, role) {
+    return this.request(`/admin/users/${userId}/role`, {
+      method: 'PATCH',
+      body: JSON.stringify({ role }),
+    });
+  }
+
+  async deactivateUser(userId) {
+    return this.request(`/admin/users/${userId}`, {
+      method: 'DELETE',
+    });
   }
 }
 

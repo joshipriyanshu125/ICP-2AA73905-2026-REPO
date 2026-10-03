@@ -8,6 +8,7 @@ import { AuthModal } from './components/AuthModal';
 import { TaskModal } from './components/TaskModal';
 import { TaskDetailDrawer } from './components/TaskDetailDrawer';
 import { WorkspaceModal } from './components/WorkspaceModal';
+import { AdminPanel } from './components/AdminPanel';
 import { Check, AlertCircle } from 'lucide-react';
 
 const INITIAL_FALLBACK_TASKS = [];
@@ -17,14 +18,14 @@ export function App() {
   const [tasks, setTasks] = useState([]);
   const [workspaces, setWorkspaces] = useState([]);
   const [currentWorkspace, setCurrentWorkspace] = useState(null);
-  const [currentView, setCurrentView] = useState('list'); // 'list' | 'kanban' | 'deadlines' | 'analytics'
+  const [mainNavView, setMainNavView] = useState('dashboard'); // 'dashboard' | 'admin'
   const [toast, setToast] = useState(null);
 
   // Modal States
   const [authModal, setAuthModal] = useState({ isOpen: false, mode: 'signin' });
   const [taskModal, setTaskModal] = useState({ isOpen: false, task: null, defaultDate: null });
   const [detailDrawerTask, setDetailDrawerTask] = useState(null);
-  const [workspaceModalOpen, setWorkspaceModalOpen] = useState(false);
+  const [workspaceModalState, setWorkspaceModalState] = useState({ isOpen: false, tab: 'create' });
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -213,26 +214,32 @@ export function App() {
       <Navbar
         user={user}
         onOpenAuth={(mode) => setAuthModal({ isOpen: true, mode })}
-        onOpenWorkspaceModal={() => setWorkspaceModalOpen(true)}
+        onOpenWorkspaceModal={(tab = 'create') => setWorkspaceModalState({ isOpen: true, tab })}
         onLogout={handleLogout}
         workspaces={workspaces}
         currentWorkspace={currentWorkspace}
         setCurrentWorkspace={setCurrentWorkspace}
+        currentView={mainNavView}
+        onNavigate={setMainNavView}
       />
 
       {/* Main Content Area */}
       <div style={{ flex: 1 }}>
         {user ? (
-          <Dashboard
-            tasks={tasks}
-            user={user}
-            onToggleTask={handleToggleTask}
-            onOpenNewTask={(date) => setTaskModal({ isOpen: true, task: null, defaultDate: date || null })}
-            onEditTask={(task) => setTaskModal({ isOpen: true, task, defaultDate: null })}
-            onOpenTaskDetail={(task) => setDetailDrawerTask(task)}
-            onDeleteTask={handleDeleteTask}
-            onReorderTasks={(newTasks) => setTasks(newTasks)}
-          />
+          mainNavView === 'admin' && user?.role === 'admin' ? (
+            <AdminPanel currentUser={user} onShowToast={showToast} />
+          ) : (
+            <Dashboard
+              tasks={tasks}
+              user={user}
+              onToggleTask={handleToggleTask}
+              onOpenNewTask={(date) => setTaskModal({ isOpen: true, task: null, defaultDate: date || null })}
+              onEditTask={(task) => setTaskModal({ isOpen: true, task, defaultDate: null })}
+              onOpenTaskDetail={(task) => setDetailDrawerTask(task)}
+              onDeleteTask={handleDeleteTask}
+              onReorderTasks={(newTasks) => setTasks(newTasks)}
+            />
+          )
         ) : (
           <LandingPage onOpenAuth={(mode) => setAuthModal({ isOpen: true, mode })} />
         )}
@@ -275,10 +282,11 @@ export function App() {
       )}
 
       {/* Workspace Management Modal */}
-      {workspaceModalOpen && (
+      {workspaceModalState.isOpen && (
         <WorkspaceModal
-          isOpen={workspaceModalOpen}
-          onClose={() => setWorkspaceModalOpen(false)}
+          isOpen={workspaceModalState.isOpen}
+          initialTab={workspaceModalState.tab}
+          onClose={() => setWorkspaceModalState({ isOpen: false, tab: 'create' })}
           currentWorkspace={currentWorkspace}
           onWorkspaceCreated={(newWs) => {
             setWorkspaces((prev) => [...prev, newWs]);

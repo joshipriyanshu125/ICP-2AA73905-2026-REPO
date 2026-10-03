@@ -31,11 +31,23 @@ export function TaskModal({ task, isOpen, onClose, onSave, workspaces, currentWo
   const [status, setStatus] = useState('todo');
   const [priority, setPriority] = useState('medium');
   const [category, setCategory] = useState('General');
+  const [assigneeId, setAssigneeId] = useState('');
+  const [workspaceMembers, setWorkspaceMembers] = useState([]);
   const [tags, setTags] = useState([]);
   const [tagInput, setTagInput] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [loading, setLoading] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && currentWorkspace?._id) {
+      api.getWorkspaceMembers(currentWorkspace._id)
+        .then((res) => {
+          if (res?.members) setWorkspaceMembers(res.members);
+        })
+        .catch(() => setWorkspaceMembers([]));
+    }
+  }, [isOpen, currentWorkspace]);
 
   useEffect(() => {
     if (task) {
@@ -44,6 +56,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, workspaces, currentWo
       setStatus(task.status || 'todo');
       setPriority(task.priority || 'medium');
       setCategory(task.category || 'General');
+      setAssigneeId(task.assigneeId?._id || task.assigneeId || '');
       setTags(task.tags || (task.labels?.map(l => l.name || l)) || []);
       setDueDate(task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '');
     } else {
@@ -52,6 +65,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, workspaces, currentWo
       setStatus('todo');
       setPriority('medium');
       setCategory('General');
+      setAssigneeId('');
       setTags([]);
       setTagInput('');
       setDueDate(defaultDate ? new Date(defaultDate).toISOString().split('T')[0] : '');
@@ -91,6 +105,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, workspaces, currentWo
       status,
       priority,
       category,
+      assigneeId: assigneeId || undefined,
       tags,
       dueDate: dueDate ? new Date(dueDate).toISOString() : null,
       workspaceId: currentWorkspace?._id || undefined
@@ -312,29 +327,62 @@ export function TaskModal({ task, isOpen, onClose, onSave, workspaces, currentWo
             </div>
           </div>
 
-          {/* Category */}
-          <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-            <label className="form-label" style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.4rem' }}>
-              Category
-            </label>
-            <select
-              className="form-select"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              style={{
-                borderRadius: '12px',
-                padding: '0.7rem 1rem',
-                backgroundColor: '#FAF8F5',
-                border: '1px solid rgba(87, 83, 78, 0.15)',
-                fontSize: '0.925rem'
-              }}
-            >
-              {CATEGORIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
+          {/* Category & Assignee Row */}
+          <div style={{ display: 'grid', gridTemplateColumns: workspaceMembers.length > 0 ? '1fr 1fr' : '1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+            <div>
+              <label className="form-label" style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.4rem' }}>
+                Category
+              </label>
+              <select
+                className="form-select"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                style={{
+                  borderRadius: '12px',
+                  padding: '0.7rem 1rem',
+                  backgroundColor: '#FAF8F5',
+                  border: '1px solid rgba(87, 83, 78, 0.15)',
+                  fontSize: '0.925rem'
+                }}
+              >
+                {CATEGORIES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {workspaceMembers.length > 0 && (
+              <div>
+                <label className="form-label" style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.4rem' }}>
+                  Assignee
+                </label>
+                <select
+                  className="form-select"
+                  value={assigneeId}
+                  onChange={(e) => setAssigneeId(e.target.value)}
+                  style={{
+                    borderRadius: '12px',
+                    padding: '0.7rem 1rem',
+                    backgroundColor: '#FAF8F5',
+                    border: '1px solid rgba(87, 83, 78, 0.15)',
+                    fontSize: '0.925rem'
+                  }}
+                >
+                  <option value="">Unassigned (Myself)</option>
+                  {workspaceMembers.map((m) => {
+                    const u = m.userId;
+                    if (!u) return null;
+                    return (
+                      <option key={u._id} value={u._id}>
+                        {u.name || u.email} ({m.role})
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+            )}
           </div>
 
           {/* Tags */}

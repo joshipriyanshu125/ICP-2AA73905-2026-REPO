@@ -1,20 +1,33 @@
-import React, { useState } from 'react';
-import { X, Sparkles, AlertCircle, Loader2, Eye, EyeOff, Mail, Lock, Unlock, ArrowLeft } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Sparkles, AlertCircle, Loader2, Eye, EyeOff, Mail, Lock, Unlock, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { api } from '../api';
 
 export function AuthModal({ initialMode = 'signin', onClose, onSuccess }) {
-  const [mode, setMode] = useState(initialMode); // 'signin' | 'signup' | 'forgot' | 'reset'
+  // 'signin' | 'signup' | 'forgot' | 'forgot-sent' | 'reset'
+  const [mode, setMode] = useState(initialMode);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [resetToken, setResetToken] = useState('');
-  const [resetTokenFromUrl, setResetTokenFromUrl] = useState('');
+  const [sentEmail, setSentEmail] = useState(''); // stores the email shown on the confirmation screen
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+
+  // On mount, check URL for a reset token (e.g. /reset-password?token=abc123)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tokenFromUrl = params.get('token');
+    if (tokenFromUrl) {
+      setResetToken(tokenFromUrl);
+      setMode('reset');
+      // Clean the URL so the token doesn't linger in the address bar
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
 
   // Helper to switch modes and reset form cleanly
   const switchMode = (newMode) => {
@@ -78,8 +91,9 @@ export function AuthModal({ initialMode = 'signin', onClose, onSuccess }) {
 
         setLoading(true);
         await api.forgotPassword(email.trim());
-        setSuccessMessage('If an account with that email exists, password reset instructions have been sent.');
-        setTimeout(() => switchMode('signin'), 3000);
+        // Store the email for display on the confirmation screen, then switch
+        setSentEmail(email.trim());
+        setMode('forgot-sent');
       } else if (mode === 'reset') {
         if (!resetToken.trim()) {
           setError('Please enter the reset token.');
@@ -129,156 +143,189 @@ export function AuthModal({ initialMode = 'signin', onClose, onSuccess }) {
     }
   };
 
+  /* ── Forgot Password: Email input form (no nested <form>) ── */
   const renderForgotPassword = () => (
-    <div style={{ textAlign: 'center' }}>
-      <Mail size={48} style={{ color: 'var(--accent-terracotta)', marginBottom: '1rem' }} />
-      <h3 className="font-serif" style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.5rem' }}>
-        Reset your password
-      </h3>
-      <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-        Enter your email address and we&apos;ll send you a reset link.
+    <>
+      <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+        <label className="form-label">Email</label>
+        <input
+          type="email"
+          className="form-input"
+          placeholder="you@domain.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          autoComplete="email"
+          autoFocus
+        />
+      </div>
+      <button
+        type="submit"
+        className="btn btn-primary"
+        style={{ width: '100%', padding: '0.8rem', fontSize: '1rem' }}
+        disabled={loading}
+      >
+        {loading ? (
+          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+            <Loader2 size={18} className="animate-spin" /> Sending...
+          </span>
+        ) : (
+          'Send reset link'
+        )}
+      </button>
+    </>
+  );
+
+  /* ── Forgot-Sent: Confirmation screen (matches the reference screenshot) ── */
+  const renderForgotSent = () => (
+    <div style={{ textAlign: 'center', padding: '1rem 0' }}>
+      <div
+        style={{
+          width: 64,
+          height: 64,
+          borderRadius: '50%',
+          backgroundColor: '#ECFDF5',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          margin: '0 auto 1.25rem',
+        }}
+      >
+        <Mail size={30} style={{ color: '#059669' }} />
+      </div>
+      <h2
+        className="font-serif"
+        style={{
+          fontSize: '1.75rem',
+          fontWeight: 600,
+          color: 'var(--text-primary)',
+          marginBottom: '0.75rem',
+        }}
+      >
+        Forgot your password?
+      </h2>
+      <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: 1.6, marginBottom: '2rem' }}>
+        If an account exists for <strong style={{ color: 'var(--text-primary)' }}>{sentEmail}</strong>, a reset link is on its way. Check your inbox.
       </p>
-      <form onSubmit={handleSubmit} noValidate>
-        <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-          <label className="form-label">Email</label>
-          <input
-            type="email"
-            className="form-input"
-            placeholder="you@domain.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            autoComplete="email"
-            autoFocus
-          />
-        </div>
-        <button
-          type="submit"
-          className="btn btn-primary"
-          style={{ width: '100%', padding: '0.8rem', fontSize: '1rem' }}
-          disabled={loading}
-        >
-          {loading ? (
-            <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Loader2 size={18} className="animate-spin" /> Sending...
-            </span>
-          ) : (
-            'Send reset link'
-          )}
-        </button>
-      </form>
+      <a
+        href="#"
+        onClick={(e) => {
+          e.preventDefault();
+          switchMode('signin');
+        }}
+        style={{
+          color: 'var(--accent-terracotta)',
+          fontWeight: 600,
+          fontSize: '0.95rem',
+          textDecoration: 'none',
+        }}
+      >
+        Back to sign in
+      </a>
     </div>
   );
 
+  /* ── Reset Password: Token + new password form (no nested <form>) ── */
   const renderResetPassword = () => (
-    <div style={{ textAlign: 'center' }}>
-      <Unlock size={48} style={{ color: 'var(--accent-terracotta)', marginBottom: '1rem' }} />
-      <h3 className="font-serif" style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.5rem' }}>
-        Create new password
-      </h3>
-      <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-        Enter the reset token from the email and your new password.
-      </p>
-      <form onSubmit={handleSubmit} noValidate>
-        <div className="form-group" style={{ marginBottom: '1rem' }}>
-          <label className="form-label">Reset Token</label>
+    <>
+      <div className="form-group" style={{ marginBottom: '1rem' }}>
+        <label className="form-label">Reset Token</label>
+        <input
+          type="text"
+          className="form-input"
+          placeholder="Enter token from email"
+          value={resetToken}
+          onChange={(e) => setResetToken(e.target.value)}
+          required
+          autoComplete="one-time-code"
+          autoFocus
+        />
+      </div>
+      <div className="form-group" style={{ marginBottom: '1rem' }}>
+        <label className="form-label">New Password</label>
+        <div style={{ position: 'relative' }}>
           <input
-            type="text"
+            type={showPassword ? 'text' : 'password'}
             className="form-input"
-            placeholder="Enter token from email"
-            value={resetToken}
-            onChange={(e) => setResetToken(e.target.value)}
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             required
-            autoComplete="one-time-code"
-            autoFocus
+            autoComplete="new-password"
+            style={{ paddingRight: '2.5rem' }}
           />
+          <button
+            type="button"
+            onClick={() => setShowPassword((prev) => !prev)}
+            style={{
+              position: 'absolute',
+              right: '0.75rem',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: 'var(--text-muted)',
+              display: 'flex',
+              alignItems: 'center',
+              padding: 0
+            }}
+            tabIndex={-1}
+          >
+            {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+          </button>
         </div>
-        <div className="form-group" style={{ marginBottom: '1rem' }}>
-          <label className="form-label">New Password</label>
-          <div style={{ position: 'relative' }}>
-            <input
-              type={showPassword ? 'text' : 'password'}
-              className="form-input"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="new-password"
-              style={{ paddingRight: '2.5rem' }}
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword((prev) => !prev)}
-              style={{
-                position: 'absolute',
-                right: '0.75rem',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                color: 'var(--text-muted)',
-                display: 'flex',
-                alignItems: 'center',
-                padding: 0
-              }}
-              tabIndex={-1}
-            >
-              {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
-            </button>
-          </div>
+      </div>
+      <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+        <label className="form-label">Confirm New Password</label>
+        <div style={{ position: 'relative' }}>
+          <input
+            type={showConfirmPassword ? 'text' : 'password'}
+            className="form-input"
+            placeholder="••••••••"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+            autoComplete="new-password"
+            style={{ paddingRight: '2.5rem' }}
+          />
+          <button
+            type="button"
+            onClick={() => setShowConfirmPassword((prev) => !prev)}
+            style={{
+              position: 'absolute',
+              right: '0.75rem',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: 'var(--text-muted)',
+              display: 'flex',
+              alignItems: 'center',
+              padding: 0
+            }}
+            tabIndex={-1}
+          >
+            {showConfirmPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+          </button>
         </div>
-        <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-          <label className="form-label">Confirm New Password</label>
-          <div style={{ position: 'relative' }}>
-            <input
-              type={showConfirmPassword ? 'text' : 'password'}
-              className="form-input"
-              placeholder="••••••••"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              autoComplete="new-password"
-              style={{ paddingRight: '2.5rem' }}
-            />
-            <button
-              type="button"
-              onClick={() => setShowConfirmPassword((prev) => !prev)}
-              style={{
-                position: 'absolute',
-                right: '0.75rem',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                color: 'var(--text-muted)',
-                display: 'flex',
-                alignItems: 'center',
-                padding: 0
-              }}
-              tabIndex={-1}
-            >
-              {showConfirmPassword ? <EyeOff size={17} /> : <Eye size={17} />}
-            </button>
-          </div>
-        </div>
-        <button
-          type="submit"
-          className="btn btn-primary"
-          style={{ width: '100%', padding: '0.8rem', fontSize: '1rem' }}
-          disabled={loading}
-        >
-          {loading ? (
-            <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Loader2 size={18} className="animate-spin" /> Resetting...
-            </span>
-          ) : (
-            'Reset password'
-          )}
-        </button>
-      </form>
-    </div>
+      </div>
+      <button
+        type="submit"
+        className="btn btn-primary"
+        style={{ width: '100%', padding: '0.8rem', fontSize: '1rem' }}
+        disabled={loading}
+      >
+        {loading ? (
+          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+            <Loader2 size={18} className="animate-spin" /> Resetting...
+          </span>
+        ) : (
+          'Reset password'
+        )}
+      </button>
+    </>
   );
 
   const renderSignIn = () => (
@@ -515,11 +562,33 @@ export function AuthModal({ initialMode = 'signin', onClose, onSuccess }) {
     </>
   );
 
+  // Determine header content based on mode
+  const getHeaderTitle = () => {
+    switch (mode) {
+      case 'signup': return 'Create your account';
+      case 'signin': return 'Sign in to your account';
+      case 'forgot': return 'Reset your password';
+      case 'forgot-sent': return ''; // handled inside renderForgotSent
+      case 'reset': return 'Create new password';
+      default: return '';
+    }
+  };
+
+  const getHeaderSubtitle = () => {
+    switch (mode) {
+      case 'signup': return 'Start organizing your tasks in a calmer workspace.';
+      case 'signin': return 'Welcome back. Pick up right where you left off.';
+      case 'forgot': return "We'll send you a link to reset your password.";
+      case 'forgot-sent': return ''; // handled inside renderForgotSent
+      case 'reset': return 'Your new password must be different from previous ones.';
+      default: return '';
+    }
+  };
+
   return (
     <div
       className="modal-overlay"
       onMouseDown={(e) => {
-        // Only close if user clicked directly on the overlay background, NOT during drag/text selection
         if (e.target === e.currentTarget) {
           onClose();
         }
@@ -543,49 +612,45 @@ export function AuthModal({ initialMode = 'signin', onClose, onSuccess }) {
           <X size={18} />
         </button>
 
-        {/* Modal Header */}
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <button
-            type="button"
-            onClick={() => switchMode(mode === 'reset' ? 'forgot' : 'signin')}
-            style={{
-              position: 'absolute',
-              left: '1.25rem',
-              top: '1.25rem',
-              padding: '0.4rem',
-              borderRadius: '50%',
-              color: 'var(--text-muted)',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              display: mode === 'forgot' || mode === 'reset' ? 'flex' : 'none',
-            }}
-          >
-            <ArrowLeft size={18} />
-          </button>
+        {/* Modal Header — hidden for forgot-sent (it has its own header) */}
+        {mode !== 'forgot-sent' && (
+          <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+            <button
+              type="button"
+              onClick={() => switchMode(mode === 'reset' ? 'forgot' : 'signin')}
+              style={{
+                position: 'absolute',
+                left: '1.25rem',
+                top: '1.25rem',
+                padding: '0.4rem',
+                borderRadius: '50%',
+                color: 'var(--text-muted)',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                display: mode === 'forgot' || mode === 'reset' ? 'flex' : 'none',
+              }}
+            >
+              <ArrowLeft size={18} />
+            </button>
 
-          <h2
-            className="font-serif"
-            style={{
-              fontSize: '2rem',
-              fontWeight: 600,
-              letterSpacing: '-0.02em',
-              color: 'var(--text-primary)',
-              marginBottom: '0.4rem',
-            }}
-          >
-            {mode === 'signup' && 'Create your account'}
-            {mode === 'signin' && 'Sign in to your account'}
-            {mode === 'forgot' && 'Reset your password'}
-            {mode === 'reset' && 'Create new password'}
-          </h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-            {mode === 'signup' && 'Start organizing your tasks in a calmer workspace.'}
-            {mode === 'signin' && 'Welcome back. Pick up right where you left off.'}
-            {mode === 'forgot' && 'We&apos;ll send you a link to reset your password.'}
-            {mode === 'reset' && 'Your new password must be different from previous ones.'}
-          </p>
-        </div>
+            <h2
+              className="font-serif"
+              style={{
+                fontSize: '2rem',
+                fontWeight: 600,
+                letterSpacing: '-0.02em',
+                color: 'var(--text-primary)',
+                marginBottom: '0.4rem',
+              }}
+            >
+              {getHeaderTitle()}
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
+              {getHeaderSubtitle()}
+            </p>
+          </div>
+        )}
 
         {/* Error Alert */}
         {error && (
@@ -633,13 +698,18 @@ export function AuthModal({ initialMode = 'signin', onClose, onSuccess }) {
           </div>
         )}
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} noValidate>
-          {mode === 'forgot' && renderForgotPassword()}
-          {mode === 'reset' && renderResetPassword()}
-          {mode === 'signin' && renderSignIn()}
-          {mode === 'signup' && renderSignUp()}
-        </form>
+        {/* Forgot-Sent confirmation — standalone, no wrapping form needed */}
+        {mode === 'forgot-sent' && renderForgotSent()}
+
+        {/* Form — only rendered for modes that need a form */}
+        {mode !== 'forgot-sent' && (
+          <form onSubmit={handleSubmit} noValidate>
+            {mode === 'forgot' && renderForgotPassword()}
+            {mode === 'reset' && renderResetPassword()}
+            {mode === 'signin' && renderSignIn()}
+            {mode === 'signup' && renderSignUp()}
+          </form>
+        )}
 
         {/* Footer Toggle */}
         {(mode === 'signin' || mode === 'signup') && (

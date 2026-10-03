@@ -128,7 +128,7 @@ authRouter.post("/forgot-password", async (req, res, next) => {
 
     // Send reset email
     const emailResult = await sendPasswordResetEmail(user, resetToken);
-    console.log(`[Password Reset] Token for ${email} -> ${resetToken} | Email result: ${emailResult?.message || 'sent'}`);
+    console.log(`[Password Reset] Token for ${email} -> ${resetToken} | Email result: ${emailResult?.success ? 'sent' : `failed - ${emailResult?.error || 'unknown'}`}`);
 
     // In development, expose the token so users can actually test the reset flow
     const isDev = process.env.NODE_ENV === 'development' || config.nodeEnv === 'development';

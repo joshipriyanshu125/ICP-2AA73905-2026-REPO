@@ -31,6 +31,15 @@ export function App() {
     setTimeout(() => setToast(null), 3500);
   };
 
+  // On mount: check URL for password-reset token and auto-open the reset modal
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const resetToken = params.get('token');
+    if (resetToken && !api.token) {
+      setAuthModal({ isOpen: true, mode: 'reset' });
+    }
+  }, []);
+
   // Fetch initial user profile & check token
   useEffect(() => {
     if (api.token) {

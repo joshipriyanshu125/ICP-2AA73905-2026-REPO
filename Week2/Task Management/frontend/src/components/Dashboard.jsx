@@ -965,14 +965,18 @@ export function Dashboard({
                   {/* Task Chips for Day */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
                     {dayTasks.map((t) => {
-                      // Color chip according to priority
-                      const chipStyles = {
-                        urgent: { bg: '#FEE2E2', text: '#991B1B', border: '#FECACA' },
-                        high: { bg: '#FEE2E2', text: '#991B1B', border: '#FECACA' },
-                        medium: { bg: '#FEF3C7', text: '#92400E', border: '#FDE68A' },
-                        low: { bg: '#DCFCE7', text: '#166534', border: '#BBF7D0' }
-                      };
-                      const style = chipStyles[t.priority] || chipStyles.medium;
+                      const isTaskCompleted = t.status === 'completed';
+
+                      // Completed tasks get a distinct green style
+                      const chipStyles = isTaskCompleted
+                        ? { bg: '#E8F5E9', text: '#2E7D32', border: '#C8E6C9' }
+                        : {
+                            urgent: { bg: '#FEE2E2', text: '#991B1B', border: '#FECACA' },
+                            high: { bg: '#FEE2E2', text: '#991B1B', border: '#FECACA' },
+                            medium: { bg: '#FEF3C7', text: '#92400E', border: '#FDE68A' },
+                            low: { bg: '#DCFCE7', text: '#166534', border: '#BBF7D0' }
+                          }[t.priority] || { bg: '#FEF3C7', text: '#92400E', border: '#FDE68A' };
+                      const style = chipStyles;
 
                       return (
                         <div
@@ -992,10 +996,22 @@ export function Dashboard({
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
-                            boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                            textDecoration: isTaskCompleted ? 'line-through' : 'none',
+                            opacity: isTaskCompleted ? 0.75 : 1,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.3rem'
                           }}
-                          title={t.title}
+                          title={`${t.title}${isTaskCompleted ? ' (Done)' : ''}`}
                         >
+                          {isTaskCompleted && (
+                            <span style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center' }}>
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                              </svg>
+                            </span>
+                          )}
                           {t.title}
                         </div>
                       );
@@ -1029,6 +1045,12 @@ export function Dashboard({
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#10B981' }} />
               <span>Low priority</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2E7D32" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              <span>Done</span>
             </div>
           </div>
         </div>

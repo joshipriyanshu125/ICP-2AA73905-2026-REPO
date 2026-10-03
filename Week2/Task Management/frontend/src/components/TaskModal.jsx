@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar as CalendarIcon, Tag as TagIcon, Plus, Loader2 } from 'lucide-react';
+import { X, Calendar as CalendarIcon, Tag as TagIcon, Plus, Loader2, Sparkles } from 'lucide-react';
+import { api } from '../api';
 
 const PRIORITIES = [
   { value: 'low', label: 'Low' },
@@ -34,6 +35,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, workspaces, currentWo
   const [tagInput, setTagInput] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [loading, setLoading] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
 
   useEffect(() => {
     if (task) {
@@ -101,6 +103,28 @@ export function TaskModal({ task, isOpen, onClose, onSave, workspaces, currentWo
       console.error('Save task error:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAiParse = async () => {
+    if (!description.trim() || aiLoading) return;
+    setAiLoading(true);
+    try {
+      const res = await api.parseTaskDescription(description);
+      if (res.success) {
+        const { title: parsedTitle, description: parsedDesc, dueDate: parsedDueDate, priority: parsedPriority, category: parsedCategory, tags: parsedTags, status: parsedStatus } = res.data;
+        setTitle(parsedTitle || title);
+        setDescription(parsedDesc || description);
+        setDueDate(parsedDueDate ? new Date(parsedDueDate).toISOString().split('T')[0] : '');
+        setPriority(parsedPriority || priority);
+        setCategory(parsedCategory || category);
+        setTags(Array.isArray(parsedTags) ? parsedTags : tags);
+        setStatus(parsedStatus || status);
+      }
+    } catch (err) {
+      console.error('AI parse error:', err);
+    } finally {
+      setAiLoading(false);
     }
   };
 
@@ -202,6 +226,39 @@ export function TaskModal({ task, isOpen, onClose, onSave, workspaces, currentWo
                 resize: 'vertical'
               }}
             />
+            {description.trim().length > 10 && (
+              <button
+                type="button"
+                onClick={handleAiParse}
+                style={{
+                  marginTop: '0.5rem',
+                  padding: '0.5rem 0.75rem',
+                  backgroundColor: '#F0EFEA',
+                  color: 'var(--text-secondary)',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '0.85rem',
+                  fontWeight: 500,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.3rem',
+                  cursor: aiLoading ? 'not-allowed' : 'pointer'
+                }}
+                disabled={aiLoading}
+              >
+                {aiLoading ? (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                    <Loader2 size={14} className="animate-spin" />
+                    Parsing...
+                  </span>
+                ) : (
+                  <>
+                    <Sparkles size={14} />
+                    Parse with AI
+                  </>
+                )}
+              </button>
+            )}
           </div>
 
           {/* Status & Priority Row */}

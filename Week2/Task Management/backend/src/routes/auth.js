@@ -127,11 +127,14 @@ authRouter.post("/forgot-password", async (req, res, next) => {
     await user.save();
 
     // Send reset email
-    sendPasswordResetEmail(user, resetToken).catch((err) => console.log("Password reset email error:", err.message));
+    const emailResult = await sendPasswordResetEmail(user, resetToken);
+    console.log(`[Password Reset] Token for ${email} -> ${resetToken} | Email result: ${emailResult?.message || 'sent'}`);
 
+    // In development, expose the token so users can actually test the reset flow
+    const isDev = process.env.NODE_ENV === 'development' || config.nodeEnv === 'development';
     return res.json({
       message: "If an account with that email exists, password reset instructions have been sent.",
-      ...(config.nodeEnv === "development" ? { resetToken } : {})
+      ...(isDev ? { resetToken, resetUrl: `${config.clientOrigin}/reset-password?token=${resetToken}` } : {})
     });
   } catch (error) {
     return next(error);

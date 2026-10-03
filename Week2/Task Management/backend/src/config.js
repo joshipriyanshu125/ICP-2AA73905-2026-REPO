@@ -1,31 +1,28 @@
 import "dotenv/config";
 
 export const config = {
-  port: Number(process.env.PORT || 5000),
-  mongoUri: process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/Task_management",
-  jwtSecret: process.env.JWT_SECRET || "development-only-change-this-secret",
+  port: Number(process.env.PORT),
+  mongoUri: process.env.MONGODB_URI,
+  jwtSecret: process.env.JWT_SECRET,
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || "7d",
-  clientOrigin: process.env.CLIENT_ORIGIN || "http://localhost:5173",
+  clientOrigin: process.env.CLIENT_ORIGIN,
+  nodeEnv: process.env.NODE_ENV || "development",
 
-  // Redis
-  redisUrl: process.env.REDIS_URL || "redis://127.0.0.1:6379",
+  redisUrl: process.env.REDIS_URL,
 
-  // Email
   smtp: {
-    host: process.env.SMTP_HOST || "smtp.mailtrap.io",
-    port: Number(process.env.SMTP_PORT || 2525),
-    user: process.env.SMTP_USER || "dummy_user",
-    pass: process.env.SMTP_PASS || "dummy_pass",
-    from: process.env.EMAIL_FROM || "noreply@taskmanagement.com"
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT),
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+    from: process.env.EMAIL_FROM,
   },
 
-  // Push notifications
   vapid: {
     publicKey: process.env.VAPID_PUBLIC_KEY || null,
     privateKey: process.env.VAPID_PRIVATE_KEY || null,
-    subject: process.env.VAPID_SUBJECT || "mailto:admin@taskmanagement.com"
+    subject: process.env.VAPID_SUBJECT || "mailto:admin@taskmanagement.com",
   },
 
-  // Upload storage
-  uploadDir: process.env.UPLOAD_DIR || "./uploads"
+  uploadDir: process.env.UPLOAD_DIR || "./uploads",
 };

@@ -29,7 +29,7 @@ describe("Health Check", () => {
 describe("Authentication", () => {
   const testUser = {
     name: "Test Runner",
-    email: `test-${Date.now()}@test.com`,
+    email: `test-${Date.now()}@test.local`,
     password: "securePassword123"
   };
   let token;
@@ -132,7 +132,7 @@ describe("Input Validation", () => {
       method: "POST",
       body: JSON.stringify({
         name: "Validation Test",
-        email: `validation-${Date.now()}@test.com`,
+        email: `validation-${Date.now()}@test.local`,
         password: "securePassword123"
       })
     });

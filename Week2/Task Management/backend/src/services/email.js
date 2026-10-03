@@ -4,40 +4,35 @@ import { config } from "../config.js";
 let transporter;
 
 try {
-  transporter = nodemailer.createTransport({
-    host: config.smtp.host,
-    port: config.smtp.port,
-    auth: {
-      user: config.smtp.user,
-      pass: config.smtp.pass
-    }
-  });
+  if (config.smtp.host && config.smtp.user && config.smtp.pass) {
+    transporter = nodemailer.createTransport({
+      host: config.smtp.host,
+      port: config.smtp.port,
+      auth: {
+        user: config.smtp.user,
+        pass: config.smtp.pass,
+      },
+    });
+  }
 } catch {
-  console.log("Email transporter initialized in offline/dummy mode.");
+  console.log("Email transporter initialization failed — check SMTP environment variables.");
 }
 
 export async function sendEmail({ to, subject, html, text }) {
   try {
     if (!to) return { success: false, message: "Recipient email is required" };
+    if (!transporter) return { success: false, message: "Email transporter not configured — set SMTP_HOST, SMTP_USER, SMTP_PASS" };
 
-    // Prevent Mailer-Daemon bounce errors by ignoring dummy test domains and automated test runs
-    const isTestDomain = /@(test\.com|example\.com|test\.invalid|localhost)$/i.test(to);
-    if (process.env.NODE_ENV === "test" || isTestDomain) {
-      console.log(`[Email Service (Test Mode)] Skipped real dispatch to dummy address: ${to}`);
-      return { success: true, messageId: `mock-test-${Date.now()}` };
-    }
-
-    if (!transporter) return { success: false, message: "Email transporter not initialized" };
     const info = await transporter.sendMail({
       from: config.smtp.from,
       to,
       subject,
       text: text || html.replace(/<[^>]*>?/gm, ""),
-      html
+      html,
     });
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.log(`[Email Service Simulation] Email to ${to} (${subject}): ${error.message}`);
+    console.log(`[Email Service Error] ${error.message}`);
     return { success: false, error: error.message };
   }
 }
@@ -46,11 +41,7 @@ export async function sendWelcomeEmail(user) {
   return sendEmail({
     to: user.email,
     subject: "Welcome to Task Management!",
-    html: `
-      <h2>Hello ${user.name},</h2>
-      <p>Welcome to your new Task Management workspace.</p>
-      <p>Start creating tasks, projects, and collaborating with your team today!</p>
-    `
+    html: `<h2>Hello ${user.name},</h2><p>Welcome to your workspace.</p>`,
   });
 }
 
@@ -59,11 +50,6 @@ export async function sendPasswordResetEmail(user, resetToken) {
   return sendEmail({
     to: user.email,
     subject: "Password Reset Request",
-    html: `
-      <h2>Hello ${user.name},</h2>
-      <p>You requested a password reset. Click the link below to set a new password:</p>
-      <p><a href="${resetUrl}">Reset Your Password</a></p>
-      <p>If you did not request this, please ignore this email.</p>
-    `
+    html: `<h2>Hello ${user.name},</h2><p>Reset link: <a href="${resetUrl}">${resetUrl}</a></p>`,
   });
 }

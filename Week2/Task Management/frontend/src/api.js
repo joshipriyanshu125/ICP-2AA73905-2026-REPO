@@ -116,6 +116,21 @@ class ApiClient {
     this.clearAuth();
   }
 
+  // --- Password Reset Endpoints ---
+  async forgotPassword(email) {
+    return this.request('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  }
+
+  async resetPassword(token, password) {
+    return this.request('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, password }),
+    });
+  }
+
   async getMe() {
     const data = await this.request('/auth/me');
     if (data?.user) {
@@ -123,6 +138,14 @@ class ApiClient {
       localStorage.setItem('taskflow_user', JSON.stringify(data.user));
     }
     return data;
+  }
+
+  // --- AI Endpoints ---
+  async parseTaskDescription(description) {
+    return this.request('/ai/parse-description', {
+      method: 'POST',
+      body: JSON.stringify({ description }),
+    });
   }
 
   // --- Tasks Endpoints ---

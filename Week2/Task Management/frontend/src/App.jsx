@@ -10,51 +10,7 @@ import { TaskDetailDrawer } from './components/TaskDetailDrawer';
 import { WorkspaceModal } from './components/WorkspaceModal';
 import { Check, AlertCircle } from 'lucide-react';
 
-const INITIAL_FALLBACK_TASKS = [
-  {
-    _id: 'seed-1',
-    title: 'Review design mockups',
-    description: 'Ensure color tokens and typography align with TaskFlow editorial design system.',
-    priority: 'high',
-    category: 'Design',
-    status: 'todo',
-    dueDate: new Date(Date.now() + 86400000).toISOString(),
-    subtasks: [
-      { _id: 'st-1', title: 'Check typography line heights', isCompleted: true },
-      { _id: 'st-2', title: 'Verify terracotta hex accents', isCompleted: false },
-    ],
-  },
-  {
-    _id: 'seed-2',
-    title: 'Write project brief',
-    description: 'Outline Q4 milestones and engineering scope for team kickoff.',
-    priority: 'medium',
-    category: 'Planning',
-    status: 'in_progress',
-    dueDate: new Date(Date.now() + 2 * 86400000).toISOString(),
-    subtasks: [{ _id: 'st-3', title: 'Draft milestone breakdown', isCompleted: false }],
-  },
-  {
-    _id: 'seed-3',
-    title: 'Team standup prep',
-    description: 'Sync with backend lead on MongoDB aggregate performance indexing.',
-    priority: 'low',
-    category: 'Meetings',
-    status: 'completed',
-    dueDate: new Date().toISOString(),
-    subtasks: [],
-  },
-  {
-    _id: 'seed-4',
-    title: 'Deploy v2.0 API gateway',
-    description: 'Configure rate limiter and SSL certificate verification.',
-    priority: 'urgent',
-    category: 'Engineering',
-    status: 'todo',
-    dueDate: new Date(Date.now() + 3 * 86400000).toISOString(),
-    subtasks: [],
-  },
-];
+const INITIAL_FALLBACK_TASKS = [];
 
 export function App() {
   const [user, setUser] = useState(api.user);
@@ -94,17 +50,10 @@ export function App() {
     if (!user) return;
     try {
       const res = await api.getTasks({ workspaceId: currentWorkspace?._id });
-      if (res?.tasks && res.tasks.length > 0) {
-        setTasks(res.tasks);
-      } else if (tasks.length === 0) {
-        // If DB has 0 tasks, seed initial calm tasks so the user sees a polished UI
-        setTasks(INITIAL_FALLBACK_TASKS);
-      }
+      setTasks(res?.tasks || []);
     } catch (err) {
-      console.warn('Using local task fallback:', err.message);
-      if (tasks.length === 0) {
-        setTasks(INITIAL_FALLBACK_TASKS);
-      }
+      console.warn('Fetch tasks error:', err.message);
+      setTasks([]);
     }
   }, [user, currentWorkspace]);
 
@@ -217,29 +166,24 @@ export function App() {
 
   const handleSaveTask = async (taskPayload, existingId) => {
     if (existingId) {
-      // Update
       try {
         const res = await api.updateTask(existingId, taskPayload);
-        const updated = res?.task || { ...taskPayload, _id: existingId };
+        const updated = res?.task || taskPayload;
         setTasks((prev) => prev.map((t) => (t._id === existingId ? { ...t, ...updated } : t)));
         showToast('Task updated successfully.');
       } catch (err) {
-        // Optimistic local update fallback
-        setTasks((prev) => prev.map((t) => (t._id === existingId ? { ...t, ...taskPayload } : t)));
-        showToast('Task updated.');
+        console.warn('Task update error:', err);
+        showToast('Failed to save task changes.', 'error');
       }
     } else {
-      // Create
       try {
         const res = await api.createTask(taskPayload);
-        const created = res?.task || { ...taskPayload, _id: `local-${Date.now()}` };
+        const created = res?.task || taskPayload;
         setTasks((prev) => [created, ...prev]);
         showToast('Task created! 🚀');
       } catch (err) {
-        // Optimistic local fallback
-        const mockTask = { ...taskPayload, _id: `local-${Date.now()}` };
-        setTasks((prev) => [mockTask, ...prev]);
-        showToast('Task created.');
+        console.warn('Task create error:', err);
+        showToast('Failed to create task.', 'error');
       }
     }
   };

@@ -20,6 +20,7 @@ import { analyticsRouter } from "./routes/analytics.js";
 import { uploadRouter } from "./routes/upload.js";
 import { adminRouter } from "./routes/admin.js";
 import { searchRouter } from "./routes/search.js";
+import { aiRouter } from "./routes/ai.js";
 import { initScheduler } from "./workers/scheduler.js";
 import { cache } from "./services/redis.js";
 import { initSocketServer } from "./services/socket.js";
@@ -72,6 +73,7 @@ app.use("/api/analytics", analyticsRouter);
 app.use("/api/upload", uploadRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/search", searchRouter);
+app.use("/api/ai", aiRouter);
 
 // Error Handling
 app.use(notFound);

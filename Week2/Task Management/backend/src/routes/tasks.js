@@ -225,12 +225,19 @@ taskRouter.patch("/:id", async (req, res, next) => {
   }
 });
 
-// 6. DELETE /api/tasks/:id (Delete task)
+// 6. DELETE /api/tasks/:id (Delete task - owner only)
 taskRouter.delete("/:id", async (req, res, next) => {
   try {
     if (!Types.ObjectId.isValid(req.params.id)) return res.status(400).json({ message: "Invalid task ID." });
-    const task = await Task.findOneAndDelete({ _id: req.params.id, ownerId: req.userId });
+    const task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ message: "Task not found." });
+
+    // Only the owner can delete tasks
+    if (task.ownerId.toString() !== req.userId.toString()) {
+      return res.status(403).json({ message: "Only the task owner can delete this task." });
+    }
+
+    await Task.findByIdAndDelete(req.params.id);
 
     await Promise.all([
       Comment.deleteMany({ taskId: task._id }),

@@ -1,6 +1,9 @@
 import cron from "node-cron";
 import { Task } from "../models/Task.js";
 import { Notification } from "../models/Notification.js";
+import { User } from "../models/User.js";
+import { config } from "../config.js";
+import { sendDailyTaskEmail } from "../services/email.js";
 
 export function initScheduler() {
   // 1. Task Due Date Reminders (Runs every 15 minutes)
@@ -98,6 +101,52 @@ export function initScheduler() {
     }
   });
 
-  console.log("Background Scheduler initialized (Task Reminders & Cron jobs active)");
+  // 3. Daily Task Email Summary (Runs every morning at 8:00 AM)
+  // Only sends if an email domain is configured
+  cron.schedule("0 8 * * *", async () => {
+    if (!config.emailDomain) {
+      console.log("[Scheduler] Email domain not configured — skipping daily task email.");
+      return;
+    }
+
+    try {
+      console.log("[Scheduler] Running daily task email job...");
+      const now = new Date();
+      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
+      // Find unfinished tasks due today or overdue
+      const dueTasks = await Task.find({
+        status: { $ne: "done" },
+        $or: [
+          { dueDate: { $gte: startOfDay, $lte: endOfDay } },
+          { dueDate: { $lt: startOfDay } }
+        ]
+      }).populate("ownerId", "name email");
+
+      // Group tasks by owner
+      const tasksByUser = {};
+      for (const task of dueTasks) {
+        const ownerId = task.ownerId._id.toString();
+        if (!tasksByUser[ownerId]) {
+          tasksByUser[ownerId] = { user: task.ownerId, tasks: [] };
+        }
+        tasksByUser[ownerId].tasks.push(task);
+      }
+
+      // Send email to each user
+      for (const { user, tasks } of Object.values(tasksByUser)) {
+        if (user?.email) {
+          await sendDailyTaskEmail(user, tasks);
+        }
+      }
+
+      console.log(`[Scheduler] Daily task email job completed. Sent to ${Object.keys(tasksByUser).length} users.`);
+    } catch (error) {
+      console.error("[Scheduler Error] Daily task email job failed:", error.message);
+    }
+  });
+
+  console.log("Background Scheduler initialized (Task Reminders, Recurring Tasks & Daily Email Summary active)");
 }
 

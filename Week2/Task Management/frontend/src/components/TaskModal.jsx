@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar as CalendarIcon, Tag as TagIcon, Plus, Loader2, Sparkles } from 'lucide-react';
+import { X, Calendar as CalendarIcon, Tag as TagIcon, Plus, Loader2, Sparkles, RefreshCw } from 'lucide-react';
 import { api } from '../api';
 
 const PRIORITIES = [
@@ -38,6 +38,8 @@ export function TaskModal({ task, isOpen, onClose, onSave, workspaces, currentWo
   const [dueDate, setDueDate] = useState('');
   const [loading, setLoading] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
+  const [rewriteText, setRewriteText] = useState('');
+  const [rewriteLoading, setRewriteLoading] = useState(false);
 
   useEffect(() => {
     if (isOpen && currentWorkspace?._id) {
@@ -143,6 +145,34 @@ export function TaskModal({ task, isOpen, onClose, onSave, workspaces, currentWo
     }
   };
 
+  const handleRewrite = async () => {
+    if (!rewriteText.trim() || rewriteLoading) return;
+    setRewriteLoading(true);
+    try {
+      const res = await api.rewriteTask(rewriteText, {
+        title,
+        priority,
+        tags,
+        dueDate
+      });
+      if (res.success) {
+        const { title: parsedTitle, description: parsedDesc, dueDate: parsedDueDate, priority: parsedPriority, tags: parsedTags, category: parsedCategory, status: parsedStatus } = res.data;
+        setTitle(parsedTitle || title);
+        setDescription(parsedDesc || description);
+        setDueDate(parsedDueDate ? new Date(parsedDueDate).toISOString().split('T')[0] : dueDate);
+        setPriority(parsedPriority || priority);
+        setCategory(parsedCategory || category);
+        setTags(Array.isArray(parsedTags) ? parsedTags : tags);
+        setStatus(parsedStatus || status);
+        setRewriteText('');
+      }
+    } catch (err) {
+      console.error('AI rewrite error:', err);
+    } finally {
+      setRewriteLoading(false);
+    }
+  };
+
   return (
     <div
       className="modal-overlay"
@@ -196,6 +226,74 @@ export function TaskModal({ task, isOpen, onClose, onSave, workspaces, currentWo
         >
           {task ? 'Edit task' : 'Create task'}
         </h2>
+
+        {/* AI Rewrite Box (only when editing) */}
+        {task && (
+          <div
+            style={{
+              backgroundColor: '#FDF3EB',
+              border: '1px solid var(--accent-terracotta-border)',
+              borderRadius: '14px',
+              padding: '1rem 1.25rem',
+              marginBottom: '1.5rem'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+              <RefreshCw size={16} color="#C25508" />
+              <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                Rewrite with AI
+              </span>
+            </div>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.75rem', lineHeight: 1.4 }}>
+              Describe the task in your own words and tap Update with AI to refresh the title, due date, priority, and tags.
+            </p>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
+              <textarea
+                className="form-textarea"
+                rows={2}
+                placeholder="e.g., Need to review the Q4 budget report and send it to finance by Friday..."
+                value={rewriteText}
+                onChange={(e) => setRewriteText(e.target.value)}
+                style={{
+                  flex: 1,
+                  borderRadius: '12px',
+                  padding: '0.6rem 0.85rem',
+                  backgroundColor: '#FFFFFF',
+                  border: '1px solid var(--accent-terracotta-border)',
+                  fontSize: '0.9rem',
+                  resize: 'vertical'
+                }}
+              />
+              <button
+                type="button"
+                onClick={handleRewrite}
+                disabled={!rewriteText.trim() || rewriteLoading}
+                style={{
+                  padding: '0.5rem 1rem',
+                  borderRadius: '10px',
+                  border: 'none',
+                  backgroundColor: '#C25508',
+                  color: '#FFFFFF',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  cursor: rewriteLoading ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.3rem',
+                  minWidth: '110px',
+                  justifyContent: 'center'
+                }}
+              >
+                {rewriteLoading ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Sparkles size={14} />
+                )}
+                Update
+              </button>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} noValidate>
           {/* Title */}

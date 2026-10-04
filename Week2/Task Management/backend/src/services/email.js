@@ -154,3 +154,90 @@ export async function sendWorkspaceInviteToNewUser({ to, inviterName, workspaceN
     `,
   });
 }
+
+// Team invitation email
+export async function sendTeamInvitationEmail({ to, inviterName, teamName, workspaceName, role }) {
+  const loginUrl = `${config.clientOrigin || 'http://localhost:5173'}`;
+  return sendEmail({
+    to,
+    subject: `${inviterName || 'A teammate'} invited you to join team "${teamName}" on TaskFlow`,
+    html: `
+      <div style="font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; background: #FAF7F2; padding: 32px; border-radius: 16px; border: 1px solid rgba(87, 83, 78, 0.15);">
+        <h1 style="color: #C25508; font-size: 24px; margin: 0 0 24px 0; font-family: serif;">TaskFlow</h1>
+        <h2 style="color: #1C1917; font-size: 20px; margin-bottom: 12px;">Team Invitation</h2>
+        <p style="color: #57534E; font-size: 15px; line-height: 1.6;">
+          <strong>${inviterName || 'A teammate'}</strong> has invited you to join the <strong>${teamName}</strong> team${workspaceName ? ` in the <strong>${workspaceName}</strong> workspace` : ''} on TaskFlow as a <strong>${role || 'member'}</strong>.
+        </p>
+        <p style="color: #57534E; font-size: 15px; line-height: 1.6;">
+          You can now collaborate on tasks with your team in real-time. Sign in with your email address to get started.
+        </p>
+        <div style="margin: 28px 0; text-align: center;">
+          <a href="${loginUrl}" style="background: #C25508; color: #FFFFFF; padding: 14px 28px; text-decoration: none; border-radius: 100px; font-weight: 600; display: inline-block; font-size: 15px;">
+            Open TaskFlow &amp; Get Started
+          </a>
+        </div>
+        <hr style="border: none; border-top: 1px solid rgba(87, 83, 78, 0.15); margin: 24px 0;">
+        <p style="color: #8A847C; font-size: 13px; margin: 0;">- The TaskFlow Team</p>
+      </div>
+    `,
+  });
+}
+
+// Daily task summary email
+export async function sendDailyTaskEmail(user, tasks) {
+  const loginUrl = `${config.clientOrigin || 'http://localhost:5173'}`;
+  const taskListHtml = tasks.map((t) => {
+    const priorityColor = {
+      urgent: '#991B1B',
+      high: '#C25508',
+      medium: '#92400E',
+      low: '#166534'
+    }[t.priority] || '#57534E';
+
+    const statusLabel = t.status === 'completed' ? 'Done' : t.status === 'in_progress' ? 'In progress' : 'To do';
+
+    return `
+      <tr style="border-bottom: 1px solid rgba(87, 83, 78, 0.08);">
+        <td style="padding: 10px 0; font-weight: 600; color: var(--text-primary);">${t.title}</td>
+        <td style="padding: 10px 0; font-size: 0.85rem; color: #57534E;">${statusLabel}</td>
+        <td style="padding: 10px 0; font-size: 0.85rem; font-weight: 600; color: ${priorityColor};">${t.priority}</td>
+        <td style="padding: 10px 0; font-size: 0.85rem; color: #57534E;">${t.dueDate ? new Date(t.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'No due date'}</td>
+      </tr>
+    `;
+  }).join('');
+
+  return sendEmail({
+    to: user.email,
+    subject: `Today's Tasks — TaskFlow`,
+    html: `
+      <div style="font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; background: #FAF7F2; padding: 32px; border-radius: 16px; border: 1px solid rgba(87, 83, 78, 0.15);">
+        <h1 style="color: #C25508; font-size: 24px; margin: 0 0 8px 0; font-family: serif;">Good morning, ${user.name || 'there'}!</h1>
+        <p style="color: #57534E; font-size: 15px; line-height: 1.6; margin-bottom: 24px;">
+          Here are your tasks that are due today or overdue:
+        </p>
+        ${tasks.length > 0 ? `
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
+          <thead>
+            <tr style="border-bottom: 2px solid rgba(87, 83, 78, 0.15);">
+              <th style="text-align: left; padding: 8px 0; font-size: 0.8rem; text-transform: uppercase; color: #8A847C; letter-spacing: 0.05em;">Task</th>
+              <th style="text-align: left; padding: 8px 0; font-size: 0.8rem; text-transform: uppercase; color: #8A847C; letter-spacing: 0.05em;">Status</th>
+              <th style="text-align: left; padding: 8px 0; font-size: 0.8rem; text-transform: uppercase; color: #8A847C; letter-spacing: 0.05em;">Priority</th>
+              <th style="text-align: left; padding: 8px 0; font-size: 0.8rem; text-transform: uppercase; color: #8A847C; letter-spacing: 0.05em;">Due</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${taskListHtml}
+          </tbody>
+        </table>
+        ` : '<p style="color: #57534E; font-size: 15px; margin-bottom: 24px;">You have no tasks due today or overdue. Great job staying on top of things!</p>'}
+        <div style="text-align: center; margin-top: 24px;">
+          <a href="${loginUrl}" style="background: #C25508; color: #FFFFFF; padding: 12px 28px; text-decoration: none; border-radius: 100px; font-weight: 600; display: inline-block; font-size: 15px;">
+            Open TaskFlow
+          </a>
+        </div>
+        <hr style="border: none; border-top: 1px solid rgba(87, 83, 78, 0.15); margin: 24px 0;">
+        <p style="color: #8A847C; font-size: 13px; margin: 0;">- The TaskFlow Team</p>
+      </div>
+    `,
+  });
+}

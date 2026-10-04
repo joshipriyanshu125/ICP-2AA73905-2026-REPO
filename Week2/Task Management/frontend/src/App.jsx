@@ -9,7 +9,8 @@ import { TaskModal } from './components/TaskModal';
 import { TaskDetailDrawer } from './components/TaskDetailDrawer';
 import { WorkspaceModal } from './components/WorkspaceModal';
 import { AdminPanel } from './components/AdminPanel';
-import { Check, AlertCircle } from 'lucide-react';
+import { TeamModal } from './components/TeamModal';
+import { Check, AlertCircle, Users } from 'lucide-react';
 
 const INITIAL_FALLBACK_TASKS = [];
 
@@ -18,7 +19,10 @@ export function App() {
   const [tasks, setTasks] = useState([]);
   const [workspaces, setWorkspaces] = useState([]);
   const [currentWorkspace, setCurrentWorkspace] = useState(null);
-  const [mainNavView, setMainNavView] = useState('dashboard'); // 'dashboard' | 'admin'
+  const [mainNavView, setMainNavView] = useState(() => {
+    const saved = localStorage.getItem('taskflow_mainNavView');
+    return saved === 'admin' ? 'admin' : 'dashboard';
+  }); // 'dashboard' | 'admin' | 'team'
   const [toast, setToast] = useState(null);
 
   // Modal States
@@ -26,6 +30,7 @@ export function App() {
   const [taskModal, setTaskModal] = useState({ isOpen: false, task: null, defaultDate: null });
   const [detailDrawerTask, setDetailDrawerTask] = useState(null);
   const [workspaceModalState, setWorkspaceModalState] = useState({ isOpen: false, tab: 'create' });
+  const [teamModalState, setTeamModalState] = useState({ isOpen: false, tab: 'list' });
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -41,6 +46,10 @@ export function App() {
     }
   }, []);
 
+  useEffect(() => {
+    localStorage.setItem('taskflow_mainNavView', mainNavView);
+  }, [mainNavView]);
+
   // Fetch initial user profile & check token
   useEffect(() => {
     if (api.token) {
@@ -50,6 +59,12 @@ export function App() {
             setUser(res.user);
             if (res.user.role === 'admin') {
               setMainNavView('admin');
+              localStorage.setItem('taskflow_mainNavView', 'admin');
+            } else {
+              const saved = localStorage.getItem('taskflow_mainNavView');
+              if (saved === 'admin') {
+                setMainNavView('admin');
+              }
             }
           }
         })
@@ -169,6 +184,12 @@ export function App() {
     setAuthModal({ isOpen: false, mode: 'signin' });
     if (authenticatedUser.role === 'admin') {
       setMainNavView('admin');
+      localStorage.setItem('taskflow_mainNavView', 'admin');
+    } else {
+      const saved = localStorage.getItem('taskflow_mainNavView');
+      if (saved === 'admin') {
+        setMainNavView('admin');
+      }
     }
     showToast(`Welcome, ${authenticatedUser.name}!`);
   };
@@ -180,6 +201,7 @@ export function App() {
     setWorkspaces([]);
     setCurrentWorkspace(null);
     setMainNavView('dashboard');
+    localStorage.removeItem('taskflow_mainNavView');
     showToast('Signed out successfully.');
   };
 
@@ -252,6 +274,34 @@ export function App() {
         {user ? (
           mainNavView === 'admin' && user?.role === 'admin' ? (
             <AdminPanel currentUser={user} onShowToast={showToast} />
+          ) : mainNavView === 'team' ? (
+            <div style={{ padding: '2rem 1.5rem', maxWidth: '1200px', margin: '0 auto' }}>
+              <h1 className="font-serif" style={{ fontSize: '2.5rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+                Team Board
+              </h1>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '1rem', marginBottom: '2rem' }}>
+                Manage your teams, invite members by email, and collaborate in real-time.
+              </p>
+              <button
+                className="btn btn-primary"
+                onClick={() => setTeamModalState({ isOpen: true, tab: 'list' })}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.75rem 1.5rem',
+                  fontSize: '0.95rem',
+                  fontWeight: 600,
+                  borderRadius: '12px',
+                  backgroundColor: '#C25508',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                <Users size={18} /> Open Team Management
+              </button>
+            </div>
           ) : (
             <Dashboard
               tasks={tasks}
@@ -323,6 +373,16 @@ export function App() {
             setMainNavView('dashboard');
             showToast('Workspace created successfully!');
           }}
+        />
+      )}
+
+      {/* Team Management Modal */}
+      {teamModalState.isOpen && (
+        <TeamModal
+          isOpen={teamModalState.isOpen}
+          onClose={() => setTeamModalState({ isOpen: false, tab: 'list' })}
+          currentWorkspace={currentWorkspace}
+          onShowToast={showToast}
         />
       )}
 

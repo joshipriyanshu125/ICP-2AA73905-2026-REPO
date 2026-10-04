@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CheckSquare, LogOut, User, FolderKanban, Plus, UserPlus, Shield } from 'lucide-react';
+import { CheckSquare, LogOut, User, FolderKanban, Plus, UserPlus, Shield, Users } from 'lucide-react';
 
 export function Navbar({ 
   user, 
@@ -190,6 +190,29 @@ export function Navbar({
                     <span>Admin Panel</span>
                   </button>
                 )}
+
+                {/* Team Link */}
+                <button
+                  type="button"
+                  onClick={() => onNavigate?.('team')}
+                  style={{
+                    background: currentView === 'team' ? '#FDF3EB' : 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '0.9rem',
+                    fontWeight: currentView === 'team' ? 700 : 500,
+                    color: currentView === 'team' ? 'var(--accent-terracotta)' : 'var(--text-secondary)',
+                    padding: '0.4rem 0.85rem',
+                    borderRadius: '100px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <Users size={14} />
+                  <span>Team</span>
+                </button>
               </div>
 
               {/* User Pill */}

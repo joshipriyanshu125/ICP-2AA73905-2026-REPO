@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
+import { taskPriorities } from "../models/Task.js";
 
 export const aiRouter = Router();
 
@@ -140,4 +141,40 @@ aiRouter.post("/parse-description", async (req, res) => {
 
 aiRouter.get("/health", async (req, res) => {
   return res.json({ status: "ok", service: "AI Gateway" });
+});
+
+// Rewrite a task description into structured fields
+aiRouter.post("/rewrite", async (req, res) => {
+  try {
+    const input = z.object({
+      description: z.string().trim().min(10).max(2000),
+      existingTitle: z.string().trim().min(1).max(140).optional(),
+      existingPriority: z.enum(taskPriorities).optional(),
+      existingTags: z.array(z.string()).optional(),
+      existingDueDate: z.string().optional()
+    }).parse(req.body);
+
+    const parsed = extractFields(input.description);
+
+    // Use existing values as fallbacks when AI doesn't extract them
+    const result = {
+      title: parsed.title || input.existingTitle || "",
+      description: parsed.description,
+      dueDate: parsed.dueDate || input.existingDueDate || null,
+      priority: parsed.priority || input.existingPriority || "medium",
+      category: parsed.category,
+      status: parsed.status,
+      tags: parsed.tags.length > 0 ? parsed.tags : (input.existingTags || [])
+    };
+
+    return res.json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Invalid input"
+    });
+  }
 });

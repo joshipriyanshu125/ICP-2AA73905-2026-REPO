@@ -25,6 +25,8 @@ export const config = {
   },
 
   uploadDir: process.env.UPLOAD_DIR || "./uploads",
+
+  emailDomain: process.env.EMAIL_DOMAIN || null,
 };
 
 // Validate critical config on startup

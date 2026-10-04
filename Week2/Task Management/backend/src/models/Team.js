@@ -11,6 +11,13 @@ const teamSchema = new Schema(
         userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
         role: { type: String, enum: ["lead", "member"], default: "member" }
       }
+    ],
+    invitedEmails: [
+      {
+        email: { type: String, required: true, lowercase: true, trim: true },
+        role: { type: String, enum: ["lead", "member"], default: "member" },
+        invitedAt: { type: Date, default: Date.now }
+      }
     ]
   },
   { timestamps: true }

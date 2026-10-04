@@ -10,6 +10,7 @@ import { WorkspaceMember } from "../models/WorkspaceMember.js";
 import { requireAuth } from "../middleware/auth.js";
 import { createToken, createRefreshToken, verifyToken } from "../utils/token.js";
 import { sendWelcomeEmail, sendPasswordResetEmail } from "../services/email.js";
+import { autoJoinTeams } from "./teams.js";
 import { config } from "../config.js";
 
 const credentials = z.object({ email: z.string().trim().email().max(254), password: z.string().min(8).max(128) });
@@ -34,6 +35,11 @@ authRouter.post("/signup", async (req, res, next) => {
       role: assignedRole
     });
     await UserRole.create({ userId: user._id, role: assignedRole });
+
+    // Auto-join teams that invited this email
+    autoJoinTeams(user._id, user.email).catch((err) => {
+      console.warn("[Auth Signup] Auto-join teams error:", err.message);
+    });
 
     // Send welcome email (asynchronous / non-blocking)
     sendWelcomeEmail(user).catch((err) => console.log("Welcome email error:", err.message));

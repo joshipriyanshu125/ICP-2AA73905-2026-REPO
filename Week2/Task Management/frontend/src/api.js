@@ -153,6 +153,79 @@ class ApiClient {
     });
   }
 
+  async rewriteTask(description, existing = {}) {
+    return this.request('/ai/rewrite', {
+      method: 'POST',
+      body: JSON.stringify({
+        description,
+        existingTitle: existing.title,
+        existingPriority: existing.priority,
+        existingTags: existing.tags,
+        existingDueDate: existing.dueDate
+      }),
+    });
+  }
+
+  // --- Teams Endpoints ---
+  async getTeams(workspaceId) {
+    return this.request(`/teams?workspaceId=${workspaceId}`);
+  }
+
+  async createTeam(workspaceId, name, description) {
+    return this.request('/teams', {
+      method: 'POST',
+      body: JSON.stringify({ workspaceId, name, description }),
+    });
+  }
+
+  async getTeam(teamId) {
+    return this.request(`/teams/${teamId}`);
+  }
+
+  async updateTeam(teamId, updates) {
+    return this.request(`/teams/${teamId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    });
+  }
+
+  async deleteTeam(teamId) {
+    return this.request(`/teams/${teamId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async inviteToTeam(teamId, email, role = 'member') {
+    return this.request(`/teams/${teamId}/invite`, {
+      method: 'POST',
+      body: JSON.stringify({ email, role }),
+    });
+  }
+
+  async removeTeamMember(teamId, userId) {
+    return this.request(`/teams/${teamId}/members/${userId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // --- Email Domain Config ---
+  async getEmailDomainConfig() {
+    return this.request('/settings/email-domain');
+  }
+
+  async setEmailDomainConfig(domain) {
+    return this.request('/settings/email-domain', {
+      method: 'POST',
+      body: JSON.stringify({ domain }),
+    });
+  }
+
+  async sendDailyTasksEmail() {
+    return this.request('/settings/email-domain/send-today', {
+      method: 'POST',
+    });
+  }
+
   // --- Tasks Endpoints ---
   async getTasks(params = {}) {
     const query = new URLSearchParams();

@@ -10,6 +10,7 @@ import { TaskDetailDrawer } from './components/TaskDetailDrawer';
 import { WorkspaceModal } from './components/WorkspaceModal';
 import { AdminPanel } from './components/AdminPanel';
 import { TeamModal } from './components/TeamModal';
+import { TeamBoardView } from './components/TeamBoardView';
 import { Check, AlertCircle, Users } from 'lucide-react';
 
 const INITIAL_FALLBACK_TASKS = [];
@@ -275,33 +276,11 @@ export function App() {
           mainNavView === 'admin' && user?.role === 'admin' ? (
             <AdminPanel currentUser={user} onShowToast={showToast} />
           ) : mainNavView === 'team' ? (
-            <div style={{ padding: '2rem 1.5rem', maxWidth: '1200px', margin: '0 auto' }}>
-              <h1 className="font-serif" style={{ fontSize: '2.5rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-                Team Board
-              </h1>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '1rem', marginBottom: '2rem' }}>
-                Manage your teams, invite members by email, and collaborate in real-time.
-              </p>
-              <button
-                className="btn btn-primary"
-                onClick={() => setTeamModalState({ isOpen: true, tab: 'list' })}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  padding: '0.75rem 1.5rem',
-                  fontSize: '0.95rem',
-                  fontWeight: 600,
-                  borderRadius: '12px',
-                  backgroundColor: '#C25508',
-                  color: '#FFFFFF',
-                  border: 'none',
-                  cursor: 'pointer'
-                }}
-              >
-                <Users size={18} /> Open Team Management
-              </button>
-            </div>
+            <TeamBoardView
+              currentWorkspace={currentWorkspace}
+              user={user}
+              onOpenTeamModal={() => setTeamModalState({ isOpen: true, tab: 'list' })}
+            />
           ) : (
             <Dashboard
               tasks={tasks}
@@ -383,6 +362,10 @@ export function App() {
           onClose={() => setTeamModalState({ isOpen: false, tab: 'list' })}
           currentWorkspace={currentWorkspace}
           onShowToast={showToast}
+          onTeamCreated={(team) => {
+            setTeamModalState({ isOpen: false, tab: 'list' });
+            showToast('Team created successfully!');
+          }}
         />
       )}
 

@@ -107,7 +107,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, workspaces, currentWo
       status,
       priority,
       category,
-      assigneeId: assigneeId || undefined,
+      assigneeId: assigneeId === 'all' ? 'all' : (assigneeId || undefined),
       tags,
       dueDate: dueDate ? new Date(dueDate).toISOString() : null,
       workspaceId: currentWorkspace?._id || undefined
@@ -469,6 +469,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, workspaces, currentWo
                   }}
                 >
                   <option value="">Unassigned (Myself)</option>
+                  <option value="all">Assign to All</option>
                   {workspaceMembers.map((m) => {
                     const u = m.userId;
                     if (!u) return null;

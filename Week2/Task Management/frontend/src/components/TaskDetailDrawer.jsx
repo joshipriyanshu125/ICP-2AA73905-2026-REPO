@@ -397,6 +397,20 @@ export function TaskDetailDrawer({ task, isOpen, onClose, onUpdateTask, onDelete
             <Trash2 size={15} /> Delete Task
           </button>
 
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={async () => {
+              try {
+                await onUpdateTask({ ...task, status: 'completed' });
+                onClose();
+              } catch (err) {
+                console.error('Mark complete error:', err);
+              }
+            }}
+          >
+            Mark as Completed
+          </button>
+
           <button className="btn btn-secondary btn-sm" onClick={onClose}>
             Done
           </button>

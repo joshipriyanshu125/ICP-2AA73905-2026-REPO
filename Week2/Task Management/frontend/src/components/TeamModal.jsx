@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, Plus, UserPlus, Trash2, Users, Mail, Check, AlertCircle } from 'lucide-react';
+import { X, Plus, UserPlus, Trash2, Users, Mail, Check, AlertCircle, User } from 'lucide-react';
 import { api } from '../api';
 
 export function TeamModal({ isOpen, onClose, currentWorkspace, onTeamCreated, onTeamUpdated, onShowToast }) {

@@ -17,6 +17,10 @@ export function AuthModal({ initialMode = 'signin', onClose, onSuccess }) {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
+  // Invitation parameters
+  const [inviteWorkspace, setInviteWorkspace] = useState('');
+  const [inviteRole, setInviteRole] = useState('');
+
   // On mount, check URL for a reset token (e.g. /reset-password?token=abc123)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -25,6 +29,27 @@ export function AuthModal({ initialMode = 'signin', onClose, onSuccess }) {
       setResetToken(tokenFromUrl);
       setMode('reset');
       // Clean the URL so the token doesn't linger in the address bar
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    // Check for invitation parameters
+    const inviteFromUrl = params.get('invite');
+    const workspaceFromUrl = params.get('workspace');
+    const emailFromUrl = params.get('email');
+
+    if (inviteFromUrl === '1' && workspaceFromUrl) {
+      // Store invitation parameters
+      setInviteWorkspace(workspaceFromUrl);
+      setInviteRole('member'); // default role for invites
+
+      // Pre-fill email if provided in invite
+      if (emailFromUrl) {
+        setEmail(emailFromUrl);
+      }
+      // Switch to signup mode if coming from an invite
+      setMode('signup');
+
+      // Clean the URL so invite params don't linger
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, []);
@@ -68,8 +93,16 @@ export function AuthModal({ initialMode = 'signin', onClose, onSuccess }) {
         }
 
         setLoading(true);
-        const data = await api.signup(name.trim(), email.trim(), password);
-        onSuccess(data.user);
+        const data = await api.signup(name.trim(), email.trim(), password, inviteWorkspace, inviteRole);
+
+        // Show success message if user was added to workspace
+        if (data.invitedWorkspace) {
+          setSuccessMessage(`Welcome! You've been added to "${data.invitedWorkspace.name}" workspace.`);
+          // Brief delay to show the message before closing
+          setTimeout(() => onSuccess(data.user), 1500);
+        } else {
+          onSuccess(data.user);
+        }
       } else if (mode === 'signin') {
         if (!email.trim()) {
           setError('Please enter your email address.');

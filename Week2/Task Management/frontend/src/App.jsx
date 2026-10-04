@@ -46,7 +46,12 @@ export function App() {
     if (api.token) {
       api.getMe()
         .then((res) => {
-          if (res?.user) setUser(res.user);
+          if (res?.user) {
+            setUser(res.user);
+            if (res.user.role === 'admin') {
+              setMainNavView('admin');
+            }
+          }
         })
         .catch(() => {
           // Token invalid
@@ -71,12 +76,25 @@ export function App() {
     if (!user) return;
     try {
       const res = await api.getWorkspaces();
-      if (res?.workspaces && res.workspaces.length > 0) {
-        setWorkspaces(res.workspaces);
-        if (!currentWorkspace) setCurrentWorkspace(res.workspaces[0]);
+      if (Array.isArray(res?.workspaces)) {
+        const savedWorkspaceId = localStorage.getItem(`taskflow_workspace_${user._id}`);
+        setWorkspaces((previous) => {
+          const workspacesById = new Map(previous.map((workspace) => [workspace._id, workspace]));
+          res.workspaces.forEach((workspace) => workspacesById.set(workspace._id, workspace));
+          return Array.from(workspacesById.values());
+        });
+        setCurrentWorkspace((current) =>
+          current || res.workspaces.find((workspace) => workspace._id === savedWorkspaceId) || res.workspaces[0] || null
+        );
       }
     } catch (err) {
-      // ignore
+      console.warn('Fetch workspaces error:', err);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (user?._id && currentWorkspace?._id) {
+      localStorage.setItem(`taskflow_workspace_${user._id}`, currentWorkspace._id);
     }
   }, [user, currentWorkspace]);
 
@@ -149,6 +167,9 @@ export function App() {
   const handleAuthSuccess = (authenticatedUser) => {
     setUser(authenticatedUser);
     setAuthModal({ isOpen: false, mode: 'signin' });
+    if (authenticatedUser.role === 'admin') {
+      setMainNavView('admin');
+    }
     showToast(`Welcome, ${authenticatedUser.name}!`);
   };
 
@@ -156,6 +177,9 @@ export function App() {
     await api.logout();
     setUser(null);
     setTasks([]);
+    setWorkspaces([]);
+    setCurrentWorkspace(null);
+    setMainNavView('dashboard');
     showToast('Signed out successfully.');
   };
 
@@ -291,8 +315,13 @@ export function App() {
           onClose={() => setWorkspaceModalState({ isOpen: false, tab: 'create' })}
           currentWorkspace={currentWorkspace}
           onWorkspaceCreated={(newWs) => {
-            setWorkspaces((prev) => [...prev, newWs]);
+            setWorkspaces((prev) => [...prev.filter((workspace) => workspace._id !== newWs._id), newWs]);
             setCurrentWorkspace(newWs);
+            if (user?._id) {
+              localStorage.setItem(`taskflow_workspace_${user._id}`, newWs._id);
+            }
+            setMainNavView('dashboard');
+            showToast('Workspace created successfully!');
           }}
         />
       )}

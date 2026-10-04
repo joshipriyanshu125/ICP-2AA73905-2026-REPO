@@ -36,7 +36,10 @@ export function WorkspaceModal({ isOpen, onClose, onWorkspaceCreated, currentWor
 
   const handleCreateWorkspace = async (e) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim()) {
+      setErrorMsg('Workspace name is required.');
+      return;
+    }
     setLoading(true);
     setErrorMsg('');
     setSuccessMsg('');
@@ -44,13 +47,21 @@ export function WorkspaceModal({ isOpen, onClose, onWorkspaceCreated, currentWor
     try {
       const res = await api.createWorkspace(name.trim(), description.trim());
       if (res?.workspace) {
-        onWorkspaceCreated(res.workspace);
         setSuccessMsg('Workspace created successfully!');
-        setTimeout(() => onClose(), 800);
+        setName('');
+        setDescription('');
+        // Call the callback immediately before closing
+        if (onWorkspaceCreated) {
+          onWorkspaceCreated(res.workspace);
+        }
+        // Close after a brief delay to show success message
+        setTimeout(() => {
+          onClose();
+        }, 500);
       }
     } catch (err) {
+      console.error('Workspace creation error:', err);
       setErrorMsg(err.message || 'Failed to create workspace.');
-    } finally {
       setLoading(false);
     }
   };

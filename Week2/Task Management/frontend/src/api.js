@@ -89,10 +89,15 @@ class ApiClient {
   }
 
   // --- Auth Endpoints ---
-  async signup(name, email, password) {
+  async signup(name, email, password, inviteWorkspace, inviteRole) {
+    const body = { name, email, password };
+    if (inviteWorkspace) {
+      body.inviteWorkspace = inviteWorkspace;
+      body.inviteRole = inviteRole || 'member';
+    }
     const data = await this.request('/auth/signup', {
       method: 'POST',
-      body: JSON.stringify({ name, email, password }),
+      body: JSON.stringify(body),
     });
     this.setAuth(data.token, data.refreshToken, data.user);
     return data;

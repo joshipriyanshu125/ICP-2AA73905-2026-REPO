@@ -1,21 +1,19 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  Users, 
-  Shield, 
-  CheckSquare, 
-  FolderKanban, 
-  Briefcase, 
-  Search, 
-  UserCheck, 
-  UserX, 
-  ShieldAlert, 
-  RefreshCw, 
-  ChevronLeft, 
+import {
+  Users,
+  Shield,
+  CheckSquare,
+  FolderKanban,
+  Briefcase,
+  Search,
+  UserCheck,
+  UserX,
+  RefreshCw,
+  ChevronLeft,
   ChevronRight,
   Loader2,
   Mail,
-  Calendar,
-  AlertCircle
+  Calendar
 } from 'lucide-react';
 import { api } from '../api';
 
@@ -29,6 +27,11 @@ export function AdminPanel({ currentUser, onShowToast }) {
   const [totalPages, setTotalPages] = useState(1);
   const [totalUsers, setTotalUsers] = useState(0);
   const [actionLoadingId, setActionLoadingId] = useState(null);
+
+  // Added state for detailed views
+  const [detailedView, setDetailedView] = useState(null); // 'tasks', 'projects', 'workspaces', or null
+  const [detailedData, setDetailedData] = useState([]);
+  const [detailedLoading, setDetailedLoading] = useState(false);
 
   const fetchStats = useCallback(async () => {
     setStatsLoading(true);
@@ -64,7 +67,7 @@ export function AdminPanel({ currentUser, onShowToast }) {
   useEffect(() => {
     fetchStats();
     fetchUsers(1, '');
-  }, [fetchStats]);
+  }, []);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -99,10 +102,10 @@ export function AdminPanel({ currentUser, onShowToast }) {
       return;
     }
 
-    const confirm = window.confirm(
+    const confirmDelete = window.confirm(
       `Are you sure you want to deactivate ${targetUser.name || targetUser.email}? They will no longer be able to log in.`
     );
-    if (!confirm) return;
+    if (!confirmDelete) return;
 
     setActionLoadingId(targetUser._id);
     try {
@@ -125,17 +128,17 @@ export function AdminPanel({ currentUser, onShowToast }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.35rem' }}>
-            <span style={{ 
-              display: 'inline-flex', 
-              alignItems: 'center', 
-              gap: '0.35rem', 
-              backgroundColor: '#FEE2E2', 
-              color: '#991B1B', 
-              padding: '3px 10px', 
-              borderRadius: '100px', 
-              fontSize: '0.75rem', 
-              fontWeight: 700, 
-              letterSpacing: '0.04em' 
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              backgroundColor: '#FEE2E2',
+              color: '#991B1B',
+              padding: '3px 10px',
+              borderRadius: '100px',
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              letterSpacing: '0.04em'
             }}>
               <Shield size={12} /> SYSTEM ADMIN
             </span>
@@ -148,9 +151,12 @@ export function AdminPanel({ currentUser, onShowToast }) {
           </p>
         </div>
 
-        <button 
+        <button
           className="btn btn-secondary"
-          onClick={() => { fetchStats(); fetchUsers(page, searchQuery); }}
+          onClick={() => {
+            fetchStats();
+            fetchUsers(page, searchQuery);
+          }}
           style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', borderRadius: '100px', padding: '0.5rem 1rem' }}
           title="Refresh stats and users"
         >
@@ -160,20 +166,25 @@ export function AdminPanel({ currentUser, onShowToast }) {
       </div>
 
       {/* Stats Overview Grid */}
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-        gap: '1rem', 
-        marginBottom: '2.5rem' 
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+        gap: '1rem',
+        marginBottom: '2.5rem'
       }}>
         {/* Total Users */}
-        <div style={{ 
-          background: '#FFFFFF', 
-          border: '1px solid rgba(87, 83, 78, 0.12)', 
-          borderRadius: '16px', 
+        <div style={{
+          background: '#FFFFFF',
+          border: '1px solid rgba(87, 83, 78, 0.12)',
+          borderRadius: '16px',
           padding: '1.25rem',
-          boxShadow: 'var(--shadow-card)'
-        }}>
+          boxShadow: 'var(--shadow-card)',
+          cursor: 'pointer',
+          transition: 'all 0.2s ease'
+        }}
+        onMouseEnter={(e) => e.currentTarget.style.boxShadow = 'var(--shadow-card-hover)'}
+        onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'var(--shadow-card)'}
+        >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
             <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Total Users</span>
             <div style={{ width: 32, height: 32, borderRadius: '8px', background: '#F1ECE4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#C25508' }}>
@@ -189,13 +200,18 @@ export function AdminPanel({ currentUser, onShowToast }) {
         </div>
 
         {/* Total Tasks */}
-        <div style={{ 
-          background: '#F7F4EE', 
-          border: '1px solid rgba(87, 83, 78, 0.12)', 
-          borderRadius: '16px', 
+        <div style={{
+          background: '#F7F4EE',
+          border: '1px solid rgba(87, 83, 78, 0.12)',
+          borderRadius: '16px',
           padding: '1.25rem',
-          boxShadow: 'var(--shadow-card)'
-        }}>
+          boxShadow: 'var(--shadow-card)',
+          cursor: 'pointer',
+          transition: 'all 0.2s ease'
+        }}
+        onMouseEnter={(e) => e.currentTarget.style.boxShadow = 'var(--shadow-card-hover)'}
+        onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'var(--shadow-card)'}
+        >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
             <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Global Tasks</span>
             <div style={{ width: 32, height: 32, borderRadius: '8px', background: '#EAE5DB', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#57534E' }}>
@@ -211,13 +227,18 @@ export function AdminPanel({ currentUser, onShowToast }) {
         </div>
 
         {/* Total Projects */}
-        <div style={{ 
-          background: '#E0F2FE', 
-          border: '1px solid #BAE6FD', 
-          borderRadius: '16px', 
+        <div style={{
+          background: '#E0F2FE',
+          border: '1px solid #BAE6FD',
+          borderRadius: '16px',
           padding: '1.25rem',
-          boxShadow: 'var(--shadow-card)'
-        }}>
+          boxShadow: 'var(--shadow-card)',
+          cursor: 'pointer',
+          transition: 'all 0.2s ease'
+        }}
+        onMouseEnter={(e) => e.currentTarget.style.boxShadow = 'var(--shadow-card-hover)'}
+        onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'var(--shadow-card)'}
+        >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
             <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#0369A1' }}>Projects</span>
             <div style={{ width: 32, height: 32, borderRadius: '8px', background: '#BAE6FD', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0284C7' }}>
@@ -233,13 +254,18 @@ export function AdminPanel({ currentUser, onShowToast }) {
         </div>
 
         {/* Total Workspaces */}
-        <div style={{ 
-          background: '#ECFDF5', 
-          border: '1px solid #A7F3D0', 
-          borderRadius: '16px', 
+        <div style={{
+          background: '#ECFDF5',
+          border: '1px solid #A7F3D0',
+          borderRadius: '16px',
           padding: '1.25rem',
-          boxShadow: 'var(--shadow-card)'
-        }}>
+          boxShadow: 'var(--shadow-card)',
+          cursor: 'pointer',
+          transition: 'all 0.2s ease'
+        }}
+        onMouseEnter={(e) => e.currentTarget.style.boxShadow = 'var(--shadow-card-hover)'}
+        onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'var(--shadow-card)'}
+        >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
             <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#047857' }}>Workspaces</span>
             <div style={{ width: 32, height: 32, borderRadius: '8px', background: '#A7F3D0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#059669' }}>
@@ -256,10 +282,10 @@ export function AdminPanel({ currentUser, onShowToast }) {
       </div>
 
       {/* User Management Section */}
-      <div style={{ 
-        background: '#FFFFFF', 
-        border: '1px solid rgba(87, 83, 78, 0.12)', 
-        borderRadius: '20px', 
+      <div style={{
+        background: '#FFFFFF',
+        border: '1px solid rgba(87, 83, 78, 0.12)',
+        borderRadius: '20px',
         padding: '1.5rem',
         boxShadow: 'var(--shadow-card)'
       }}>
@@ -297,9 +323,9 @@ export function AdminPanel({ currentUser, onShowToast }) {
               Search
             </button>
             {searchQuery && (
-              <button 
-                type="button" 
-                className="btn btn-ghost btn-sm" 
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
                 onClick={() => { setSearchQuery(''); fetchUsers(1, ''); }}
               >
                 Clear
@@ -329,7 +355,7 @@ export function AdminPanel({ currentUser, onShowToast }) {
                     <p>Loading users...</p>
                   </td>
                 </tr>
-              ) : users.length === 0 ? (
+              ) : users && users.length === 0 ? (
                 <tr>
                   <td colSpan="6" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
                     <p>No users found matching your search.</p>
@@ -341,9 +367,9 @@ export function AdminPanel({ currentUser, onShowToast }) {
                   const isBusy = actionLoadingId === u._id;
 
                   return (
-                    <tr 
-                      key={u._id} 
-                      style={{ 
+                    <tr
+                      key={u._id}
+                      style={{
                         borderBottom: '1px solid rgba(87, 83, 78, 0.08)',
                         backgroundColor: u.isDeleted ? 'rgba(254, 242, 242, 0.4)' : 'transparent'
                       }}
@@ -442,7 +468,7 @@ export function AdminPanel({ currentUser, onShowToast }) {
                             style={{ color: '#DC2626', fontSize: '0.8rem', padding: '0.25rem 0.6rem' }}
                             title="Deactivate User"
                           >
-                            Deactivate
+                            {isBusy ? <Loader2 size={14} className="spin" /> : 'Deactivate'}
                           </button>
                         )}
                       </td>

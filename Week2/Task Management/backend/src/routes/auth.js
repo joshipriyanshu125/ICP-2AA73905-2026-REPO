@@ -5,6 +5,8 @@ import { z } from "zod";
 import { User } from "../models/User.js";
 import { UserRole } from "../models/UserRole.js";
 import { Session } from "../models/Session.js";
+import { Workspace } from "../models/Workspace.js";
+import { WorkspaceMember } from "../models/WorkspaceMember.js";
 import { requireAuth } from "../middleware/auth.js";
 import { createToken, createRefreshToken, verifyToken } from "../utils/token.js";
 import { sendWelcomeEmail, sendPasswordResetEmail } from "../services/email.js";
@@ -48,10 +50,43 @@ authRouter.post("/signup", async (req, res, next) => {
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
     });
 
+    // Check if this signup is from an invitation
+    const { inviteWorkspace, inviteRole } = req.body;
+    let invitedWorkspace = null;
+
+    if (inviteWorkspace) {
+      const workspace = await Workspace.findOne({ slug: inviteWorkspace });
+      if (workspace) {
+        // Check if user is already a member (avoid duplicates)
+        const existingMember = await WorkspaceMember.findOne({
+          workspaceId: workspace._id,
+          userId: user._id
+        });
+
+        if (!existingMember) {
+          // Add user as member of the workspace
+          const member = await WorkspaceMember.create({
+            workspaceId: workspace._id,
+            userId: user._id,
+            role: inviteRole || "member",
+            status: "active"
+          });
+          invitedWorkspace = {
+            id: workspace._id,
+            name: workspace.name,
+            slug: workspace.slug,
+            role: member.role
+          };
+          console.log(`[Workspace] Added new user ${user.email} to workspace "${workspace.name}" as ${member.role}`);
+        }
+      }
+    }
+
     return res.status(201).json({
       token,
       refreshToken,
-      user: { id: user._id, name: user.name, email: user.email, role: user.role }
+      user: { id: user._id, name: user.name, email: user.email, role: user.role },
+      invitedWorkspace
     });
   } catch (error) {
     return next(error);

@@ -126,3 +126,33 @@ adminRouter.delete("/users/:id", async (req, res, next) => {
     return next(error);
   }
 });
+
+// List all tasks (for admin overview)
+adminRouter.get("/tasks", async (req, res, next) => {
+  try {
+    const tasks = await Task.find().populate("workspaceId", "name").populate("ownerId", "name").sort({ createdAt: -1 });
+    return res.json({ tasks });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+// List all projects (for admin overview)
+adminRouter.get("/projects", async (req, res, next) => {
+  try {
+    const projects = await Project.find().populate("workspaceId", "name").populate("ownerId", "name").sort({ createdAt: -1 });
+    return res.json({ projects });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+// List all workspaces (for admin overview)
+adminRouter.get("/workspaces", async (req, res, next) => {
+  try {
+    const workspaces = await Workspace.find().populate("ownerId", "name").sort({ createdAt: -1 });
+    return res.json({ workspaces });
+  } catch (error) {
+    return next(error);
+  }
+});

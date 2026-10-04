@@ -237,10 +237,10 @@ export function Dashboard({
 
   // Get tasks matching a specific calendar date
   const getTasksForDate = (dateObj) => {
-    const dateStr = dateObj.toISOString().split('T')[0];
+    const dateStr = dateObj.toLocaleDateString('en-CA');
     return tasks.filter((t) => {
       if (!t.dueDate) return false;
-      const tStr = new Date(t.dueDate).toISOString().split('T')[0];
+      const tStr = new Date(t.dueDate).toLocaleDateString('en-CA');
       return tStr === dateStr;
     });
   };

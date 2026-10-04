@@ -78,26 +78,25 @@ taskRouter.get("/", async (req, res, next) => {
     const sortDirection = query.sortOrder === "desc" ? -1 : 1;
     const sort = { [sortField]: sortDirection, createdAt: -1 };
 
-    if (query.page && query.limit) {
-      const page = query.page;
-      const limit = query.limit;
-      const skip = (page - 1) * limit;
+    const page = query.page || 1;
+    const limit = query.limit || 50;
+    const skip = (page - 1) * limit;
 
-      const [tasks, total] = await Promise.all([
-        Task.find(filter).sort(sort).skip(skip).limit(limit).populate("assigneeId", "name email avatarUrl").populate("labels"),
-        Task.countDocuments(filter)
-      ]);
+    const [tasks, total] = await Promise.all([
+      Task.find(filter).sort(sort).skip(skip).limit(limit).populate("assigneeId", "name email avatarUrl").populate("labels"),
+      Task.countDocuments(filter)
+    ]);
 
-      return res.json({
-        tasks,
-        total,
-        page,
-        totalPages: Math.ceil(total / limit)
-      });
-    }
+    return res.json({
+      tasks,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit)
+    });
+  }
 
-    const tasks = await Task.find(filter).sort(sort).populate("assigneeId", "name email avatarUrl").populate("labels");
-    return res.json({ tasks });
+  const tasks = await Task.find(filter).sort(sort).populate("assigneeId", "name email avatarUrl").populate("labels");
+  return res.json({ tasks });
   } catch (error) {
     return next(error);
   }

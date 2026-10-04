@@ -85,7 +85,4 @@ export function broadcastSocketEvent(event, payload = {}) {
   if (recipientId) {
     io.to(`user:${recipientId}`).emit(event, payload);
   }
-
-  // Also broadcast to all clients for live dashboard synchronization
-  io.emit(event, payload);
 }

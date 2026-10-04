@@ -124,10 +124,11 @@ export function TaskModal({ task, isOpen, onClose, onSave, workspaces, currentWo
   };
 
   const handleAiParse = async () => {
-    if (!description.trim() || aiLoading) return;
+    const desc = description;
+    if (!desc.trim() || aiLoading) return;
     setAiLoading(true);
     try {
-      const res = await api.parseTaskDescription(description);
+      const res = await api.parseTaskDescription(desc);
       if (res.success) {
         const { title: parsedTitle, description: parsedDesc, dueDate: parsedDueDate, priority: parsedPriority, category: parsedCategory, tags: parsedTags, status: parsedStatus } = res.data;
         setTitle(parsedTitle || title);
@@ -146,10 +147,11 @@ export function TaskModal({ task, isOpen, onClose, onSave, workspaces, currentWo
   };
 
   const handleRewrite = async () => {
-    if (!rewriteText.trim() || rewriteLoading) return;
+    const text = rewriteText;
+    if (!text.trim() || rewriteLoading) return;
     setRewriteLoading(true);
     try {
-      const res = await api.rewriteTask(rewriteText, {
+      const res = await api.rewriteTask(text, {
         title,
         priority,
         tags,

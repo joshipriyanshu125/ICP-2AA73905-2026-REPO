@@ -208,7 +208,7 @@ export function App() {
 
   // Task Handlers
   const handleToggleTask = async (taskId, newStatus) => {
-    // Optimistic UI update
+    const prev = tasks;
     setTasks((prev) =>
       prev.map((t) => (t._id === taskId ? { ...t, status: newStatus } : t))
     );
@@ -218,6 +218,8 @@ export function App() {
       showToast(newStatus === 'completed' ? 'Task completed! 🎉' : 'Task status updated');
     } catch (err) {
       console.warn('API task update error:', err);
+      setTasks(prev);
+      showToast('Failed to update task.', 'error');
     }
   };
 
@@ -246,12 +248,15 @@ export function App() {
   };
 
   const handleDeleteTask = async (taskId) => {
+    const prev = tasks;
     setTasks((prev) => prev.filter((t) => t._id !== taskId));
     try {
       await api.deleteTask(taskId);
       showToast('Task deleted.');
     } catch (err) {
       console.warn(err);
+      setTasks(prev);
+      showToast('Failed to delete task.', 'error');
     }
   };
 

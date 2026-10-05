@@ -96,23 +96,29 @@
 | Layer | Technologies Used |
 | :--- | :--- |
 | **Frontend** | React 18, Vite 6, Vanilla CSS (Design Tokens & Glassmorphism), Lucide Icons, Socket.IO Client |
-| **Backend** | Node.js (ES Modules), Express 5, Socket.IO, Multer, Nodemailer, Web-Push |
-| **Database & Cache** | MongoDB (Mongoose ODM), Redis (ioredis Pub/Sub & Caching layer) |
-| **Testing & Quality** | Node.js Test Runner (`node:test`, `node:assert/strict`), Vite Production Bundler |
-| **Security & Auth** | JWT (Access & Refresh Tokens), Bcrypt.js, Express-Rate-Limit, Input Sanitization |
+| **Backend** | Node.js (ES Modules), Express 5, Socket.IO, Multer, Nodemailer, Web-Push, node-cron |
+| **Database & Cache** | MongoDB (Mongoose ODM), Redis (ioredis — Pub/Sub & Cache layer) |
+| **Real-Time** | Redis Pub/Sub (`taskflow:realtime` channel), Socket.IO rooms (`project:<id>`, `workspace:<id>`, `user:<id>`) |
+| **Event Architecture** | Node.js EventEmitter app-event bus (`services/events.js`) — decouples DB writes from side-effects |
+| **Security & Auth** | JWT (Access `7d` + Refresh token pair), Bcrypt.js (12 rounds), express-rate-limit, XSS sanitization, Session revocation |
+| **Background Jobs** | node-cron scheduler (`workers/scheduler.js`) — due-date reminders, overdue notifications |
+| **Testing & Quality** | Node.js Test Runner (`node:test`, `node:assert/strict`) — 14 tests / 4 suites / 100% pass rate, Vite Production Bundler |
 
 ---
 
 ## 💡 Key Engineering Learnings
 
 1. **Distributed Real-Time Scaling with Redis Pub/Sub:**
-   * Traditional single-process WebSockets fail when multiple server instances or containers are deployed behind a load balancer. Integrating a dedicated Redis Pub/Sub layer (`ioredis`) guarantees that socket events broadcast globally across all instances while maintaining an in-memory fallback for local development.
+   * Traditional single-process WebSockets fail when multiple server instances or containers are deployed behind a load balancer. Integrating a dedicated Redis Pub/Sub layer (`ioredis`) via `services/pubsub.js` guarantees that socket events broadcast globally across all instances while maintaining an in-memory fallback for local development.
 
-2. **Resilient Event-Driven Architecture:**
-   * Separating database write operations from external side-effects (push notifications, emails, websocket emissions) using an application event bus prevents slow third-party services from degrading API latency.
+2. **Resilient Event-Driven Architecture with App Event Bus:**
+   * Separating database write operations from external side-effects (push notifications, emails, websocket emissions) using the `services/events.js` Node.js EventEmitter bus prevents slow third-party services from degrading API response latency. Routes emit domain events; listeners handle async consequences independently.
 
 3. **Production Mailer Resilience & Bounce Handling:**
-   * Connecting live SMTP credentials (e.g. Gmail) requires safeguards against automated test scripts generating dummy emails (`@test.com`). Implementing domain filtering prevents mail delivery subsystem bounce-backs from cluttering administrator inboxes.
+   * Connecting live SMTP credentials (e.g. Gmail) requires safeguards against automated test scripts generating dummy emails. The `EMAIL_DOMAIN` config value and domain filter in `services/email.js` prevent test-domain addresses (`@test.com`, `@example.com`) from causing mailer-daemon bounce-backs in administrator inboxes.
 
 4. **Optimistic UI with Real-Time Reconciliation:**
-   * Providing instantaneous UI feedback on client interactions (e.g. drag-and-drop or status toggle) coupled with background websocket confirmation creates a seamless user experience.
+   * Providing instantaneous UI feedback on client interactions (e.g. drag-and-drop reordering or status toggle) coupled with background WebSocket confirmation (via `task:reordered` / `task:updated` socket events) creates a seamless user experience even on slow connections.
+
+5. **Auto-Provisioned Default Workspace:**
+   * The workspace route (`GET /api/workspaces`) automatically creates and assigns a default workspace if the authenticated user has none. This eliminates blank-state edge cases on first login without requiring a separate onboarding step.

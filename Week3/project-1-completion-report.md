@@ -84,25 +84,46 @@ TaskFlow is an enterprise-grade collaborative task management application engine
 |                          User                               |
 | _id, name, email, passwordHash, avatarUrl, pushSubscription |
 +-------------------------------------------------------------+
-                               |
-                               +-----------------------------+
-                               |                             |
-                               v                             v
-+-----------------------------------+        +-----------------------------------+
-|            Workspace              |        |             Task                  |
-| _id, name, description, ownerId   |        | _id, title, description, status,  |
-+-----------------------------------+        | priority, category, dueDate, tags,|
-                               |             | position, ownerId, assigneeId,    |
-                               v             | workspaceId, projectId, subtasks  |
-+-----------------------------------+        +-----------------------------------+
-|         WorkspaceMember           |                        |
-| workspaceId, userId, role         |                        +-------------------+
-+-----------------------------------+                        |                   |
-                                                             v                   v
-                                             +--------------------+  +--------------------+
-                                             |      Comment       |  |     Attachment     |
-                                             | taskId, authorId   |  | taskId, uploaderId |
-                                             +--------------------+  +--------------------+
+     |               |                 |              |
+     v               v                 v              v
++----------+  +-------------------+  +----------+  +----------+
+| Session  |  |    Workspace      |  |   Team   |  | Activity |
+| userId   |  | _id, name, slug,  |  | _id,name,|  | userId,  |
+| token    |  | description,      |  | workspaceId| | action,  |
+| ip, agent|  | ownerId           |  +----------+  | details  |
++----------+  +-------------------+  +----------+  +----------+
+                       |
+          +------------+------------+
+          |                         |
+          v                         v
++-------------------+    +--------------------+
+|  WorkspaceMember  |    |     Project        |
+| workspaceId,      |    | _id, name,         |
+| userId, role,     |    | workspaceId,       |
+| status            |    | description,status |
++-------------------+    +--------------------+
+                                  |
+                                  v
++-------------------------------------------------------------+
+|                           Task                              |
+| _id, title, description, status, priority, category,       |
+| dueDate, tags, position, ownerId, assigneeId,               |
+| workspaceId, projectId                                      |
++-------------------------------------------------------------+
+     |                    |                   |
+     v                    v                   v
++----------+     +--------------------+  +--------------------+
+|  Subtask |     |      Comment       |  |    Attachment      |
+| taskId,  |     | taskId, authorId,  |  | taskId, uploaderId,|
+| title,   |     | message, createdAt |  | filename, mimeType |
+| done     |     +--------------------+  +--------------------+
++----------+
+
++--------------------+     +--------------------+
+|       Label        |     |    Notification    |
+| _id, name, color,  |     | userId, type,      |
+| workspaceId        |     | message, isRead    |
++--------------------+     +--------------------+
 ```
 
 ---
@@ -118,6 +139,34 @@ TaskFlow is an enterprise-grade collaborative task management application engine
 * `POST /api/auth/forgot-password` — Generate password reset token.
 * `POST /api/auth/reset-password` — Apply new password with reset token.
 
+### Users
+* `GET    /api/users/me` — Get own profile.
+* `PATCH  /api/users/me` — Update profile (name, avatarUrl, preferences).
+
+### Workspaces
+* `GET    /api/workspaces` — List user's workspaces (auto-provisions default if empty).
+* `POST   /api/workspaces` — Create new workspace.
+* `GET    /api/workspaces/:id` — Get workspace details + current user role.
+* `PATCH  /api/workspaces/:id` — Update workspace (admin/owner only).
+* `DELETE /api/workspaces/:id` — Delete workspace with full cascade cleanup (owner only).
+* `GET    /api/workspaces/:id/members` — List workspace members.
+* `POST   /api/workspaces/:id/members` — Invite member by email (sends email if not yet registered).
+* `DELETE /api/workspaces/:id/members/:userId` — Remove member (self or admin/owner).
+
+### Teams
+* `GET    /api/teams` — List teams in a workspace.
+* `POST   /api/teams` — Create team.
+* `PATCH  /api/teams/:id` — Update team details.
+* `DELETE /api/teams/:id` — Delete team.
+* `POST   /api/teams/:id/members` — Add member to team.
+* `DELETE /api/teams/:id/members/:userId` — Remove team member.
+
+### Projects
+* `GET    /api/projects` — List projects in a workspace.
+* `POST   /api/projects` — Create project.
+* `PATCH  /api/projects/:id` — Update project.
+* `DELETE /api/projects/:id` — Delete project.
+
 ### Tasks
 * `GET    /api/tasks` — List tasks with search, pagination, status/priority/category filters.
 * `POST   /api/tasks` — Create new task and broadcast `task:created`.
@@ -130,6 +179,24 @@ TaskFlow is an enterprise-grade collaborative task management application engine
 * `DELETE /api/tasks/:id/subtasks/:subtaskId` — Delete subtask item.
 * `GET    /api/tasks/:id/comments` — List task discussion comments.
 * `POST   /api/tasks/:id/comments` — Add comment and broadcast `comment:added`.
+
+### Labels
+* `GET    /api/labels` — List labels.
+* `POST   /api/labels` — Create label.
+* `DELETE /api/labels/:id` — Delete label.
+
+### Notifications
+* `GET    /api/notifications` — List user notifications.
+* `PATCH  /api/notifications/:id/read` — Mark notification as read.
+
+### Other Routes
+* `GET    /api/analytics` — Usage and productivity metrics.
+* `POST   /api/upload` — Upload file attachment (multer, static served at `/uploads/<filename>`).
+* `GET    /api/search` — Cross-entity full-text search (tasks, projects, members).
+* `GET/PATCH /api/settings` — User preference settings.
+* `GET    /api/admin/users` — Admin: list all users.
+* `PATCH  /api/admin/users/:id` — Admin: update user role/status.
+* `POST   /api/ai` — AI-assisted task suggestions.
 
 ---
 

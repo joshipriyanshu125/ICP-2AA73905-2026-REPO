@@ -144,6 +144,31 @@ class AppEventBus extends EventEmitter {
       }
     });
 
+    // When a team is created, updated, or deleted
+    this.on("team:created", async ({ team, workspaceId, userId }) => {
+      try {
+        await publishRealtimeEvent("team:created", { team, workspaceId, userId });
+      } catch (err) {
+        console.error("[EventBus] team:created error:", err.message);
+      }
+    });
+
+    this.on("team:updated", async ({ team, workspaceId, userId }) => {
+      try {
+        await publishRealtimeEvent("team:updated", { team, workspaceId, userId });
+      } catch (err) {
+        console.error("[EventBus] team:updated error:", err.message);
+      }
+    });
+
+    this.on("team:deleted", async ({ teamId, workspaceId, userId }) => {
+      try {
+        await publishRealtimeEvent("team:deleted", { teamId, workspaceId, userId });
+      } catch (err) {
+        console.error("[EventBus] team:deleted error:", err.message);
+      }
+    });
+
     console.log("Event bus initialized with real-time Pub/Sub & notification listeners");
   }
 }

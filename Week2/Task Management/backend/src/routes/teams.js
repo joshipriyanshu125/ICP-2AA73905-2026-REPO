@@ -57,7 +57,13 @@ teamRouter.post("/", async (req, res, next) => {
       members: [{ userId: req.userId, role: "lead" }]
     });
 
-    return res.status(201).json({ team });
+    const populated = await Team.findById(team._id)
+      .populate("leadId", "name email avatarUrl")
+      .populate("members.userId", "name email avatarUrl");
+
+    eventBus.emit("team:created", { team: populated, workspaceId: input.workspaceId, userId: req.userId });
+
+    return res.status(201).json({ team: populated });
   } catch (error) {
     return next(error);
   }
@@ -94,7 +100,12 @@ teamRouter.patch("/:id", async (req, res, next) => {
 
     const input = z.object({ name: z.string().trim().min(2).max(80).optional(), description: z.string().trim().max(300).optional(), leadId: z.string().refine(Types.ObjectId.isValid).optional() }).parse(req.body);
 
-    const updated = await Team.findByIdAndUpdate(req.params.id, { $set: input }, { new: true });
+    const updated = await Team.findByIdAndUpdate(req.params.id, { $set: input }, { new: true })
+      .populate("leadId", "name email avatarUrl")
+      .populate("members.userId", "name email avatarUrl");
+
+    eventBus.emit("team:updated", { team: updated, workspaceId: team.workspaceId, userId: req.userId });
+
     return res.json({ team: updated });
   } catch (error) {
     return next(error);
@@ -117,6 +128,8 @@ teamRouter.delete("/:id", async (req, res, next) => {
     if (!workspaceOwner) return res.status(403).json({ message: "Only the workspace owner can delete teams." });
 
     await Team.findByIdAndDelete(req.params.id);
+    eventBus.emit("team:deleted", { teamId: req.params.id, workspaceId: team.workspaceId, userId: req.userId });
+
     return res.status(204).send();
   } catch (error) {
     return next(error);
@@ -168,7 +181,13 @@ teamRouter.post("/:id/invite", async (req, res, next) => {
           role: input.role || "member"
         }).catch((err) => console.warn("[Team Invite] Email failed:", err.message));
 
-        return res.status(201).json({ team: await team.populate("members.userId", "name email avatarUrl").execPopulate() });
+        const populated = await Team.findById(team._id)
+          .populate("leadId", "name email avatarUrl")
+          .populate("members.userId", "name email avatarUrl");
+
+        eventBus.emit("team:updated", { team: populated, workspaceId: team.workspaceId, userId: req.userId });
+
+        return res.status(201).json({ team: populated });
       }
     }
 
@@ -189,7 +208,13 @@ teamRouter.post("/:id/invite", async (req, res, next) => {
       role: input.role || "member"
     }).catch((err) => console.warn("[Team Invite] Email failed:", err.message));
 
-    return res.status(201).json({ team, invited: true });
+    const populated = await Team.findById(team._id)
+      .populate("leadId", "name email avatarUrl")
+      .populate("members.userId", "name email avatarUrl");
+
+    eventBus.emit("team:updated", { team: populated, workspaceId: team.workspaceId, userId: req.userId });
+
+    return res.status(201).json({ team: populated, invited: true });
   } catch (error) {
     return next(error);
   }
@@ -217,6 +242,12 @@ teamRouter.delete("/:id/members/:userId", async (req, res, next) => {
 
     team.members.splice(memberIndex, 1);
     await team.save();
+
+    const populated = await Team.findById(team._id)
+      .populate("leadId", "name email avatarUrl")
+      .populate("members.userId", "name email avatarUrl");
+
+    eventBus.emit("team:updated", { team: populated, workspaceId: team.workspaceId, userId: req.userId });
 
     return res.status(204).send();
   } catch (error) {

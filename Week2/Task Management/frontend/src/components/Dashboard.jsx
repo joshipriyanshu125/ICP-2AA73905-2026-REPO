@@ -55,7 +55,7 @@ export function Dashboard({
     const total = tasks.length;
     const todo = tasks.filter((t) => t.status === 'todo').length;
     const inProgress = tasks.filter((t) => t.status === 'in_progress').length;
-    const completed = tasks.filter((t) => t.status === 'completed').length;
+    const completed = tasks.filter((t) => t.status === 'completed' || t.status === 'done').length;
     return { total, todo, inProgress, completed };
   }, [tasks]);
 
@@ -87,7 +87,13 @@ export function Dashboard({
       }
 
       // Status
-      if (statusFilter !== 'all' && task.status !== statusFilter) return false;
+      if (statusFilter !== 'all') {
+        if (statusFilter === 'completed') {
+          if (task.status !== 'completed' && task.status !== 'done') return false;
+        } else if (task.status !== statusFilter) {
+          return false;
+        }
+      }
 
       // Priority
       if (priorityFilter !== 'all' && task.priority !== priorityFilter) return false;
@@ -650,7 +656,7 @@ export function Dashboard({
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {filteredTasks.length > 0 ? (
             filteredTasks.map((task, idx) => {
-              const isCompleted = task.status === 'completed';
+              const isCompleted = task.status === 'completed' || task.status === 'done';
               const dueLabel = formatDueDateLabel(task.dueDate);
 
               // Priority style
@@ -791,7 +797,7 @@ export function Dashboard({
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', fontSize: '0.825rem', color: 'var(--text-muted)' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                         <Circle size={12} strokeWidth={2} />
-                        {task.status === 'completed' ? 'Done' : task.status === 'in_progress' ? 'In progress' : 'To do'}
+                        {(task.status === 'completed' || task.status === 'done') ? 'Done' : task.status === 'in_progress' ? 'In progress' : 'To do'}
                       </span>
 
                       {dueLabel && (
@@ -1011,7 +1017,7 @@ export function Dashboard({
                   {/* Task Chips for Day */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
                     {dayTasks.map((t) => {
-                      const isTaskCompleted = t.status === 'completed';
+                      const isTaskCompleted = t.status === 'completed' || t.status === 'done';
 
                       // Completed tasks get a distinct green style
                       const chipStyles = isTaskCompleted

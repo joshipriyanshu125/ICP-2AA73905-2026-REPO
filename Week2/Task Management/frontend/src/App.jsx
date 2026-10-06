@@ -20,9 +20,11 @@ export function App() {
   const [tasks, setTasks] = useState([]);
   const [workspaces, setWorkspaces] = useState([]);
   const [currentWorkspace, setCurrentWorkspace] = useState(null);
+  const [teams, setTeams] = useState([]);
+  const [teamsLoading, setTeamsLoading] = useState(false);
   const [mainNavView, setMainNavView] = useState(() => {
     const saved = localStorage.getItem('taskflow_mainNavView');
-    return saved === 'admin' ? 'admin' : 'dashboard';
+    return saved === 'admin' || saved === 'team' || saved === 'dashboard' ? saved : 'dashboard';
   }); // 'dashboard' | 'admin' | 'team'
   const [toast, setToast] = useState(null);
 
@@ -58,13 +60,18 @@ export function App() {
         .then((res) => {
           if (res?.user) {
             setUser(res.user);
+            const saved = localStorage.getItem('taskflow_mainNavView');
             if (res.user.role === 'admin') {
-              setMainNavView('admin');
-              localStorage.setItem('taskflow_mainNavView', 'admin');
-            } else {
-              const saved = localStorage.getItem('taskflow_mainNavView');
-              if (saved === 'admin') {
+              if (saved === 'admin' || saved === 'team' || saved === 'dashboard') {
+                setMainNavView(saved);
+              } else {
                 setMainNavView('admin');
+              }
+            } else {
+              if (saved === 'team' || saved === 'dashboard') {
+                setMainNavView(saved);
+              } else {
+                setMainNavView('dashboard');
               }
             }
           }
@@ -108,6 +115,27 @@ export function App() {
     }
   }, [user]);
 
+  const fetchTeams = useCallback(async () => {
+    if (!user || !currentWorkspace?._id) {
+      setTeams([]);
+      return;
+    }
+    setTeamsLoading(true);
+    try {
+      const res = await api.getTeams(currentWorkspace._id);
+      if (Array.isArray(res?.teams)) {
+        setTeams(res.teams);
+      } else {
+        setTeams([]);
+      }
+    } catch (err) {
+      console.warn('Fetch teams error:', err.message);
+      setTeams([]);
+    } finally {
+      setTeamsLoading(false);
+    }
+  }, [user, currentWorkspace]);
+
   useEffect(() => {
     if (user?._id && currentWorkspace?._id) {
       localStorage.setItem(`taskflow_workspace_${user._id}`, currentWorkspace._id);
@@ -118,8 +146,9 @@ export function App() {
     if (user) {
       fetchTasks();
       fetchWorkspaces();
+      fetchTeams();
     }
-  }, [user, fetchTasks, fetchWorkspaces]);
+  }, [user, fetchTasks, fetchWorkspaces, fetchTeams]);
 
   // Real-time Socket.IO Subscriptions (Task updated -> Mongo -> EventBus -> Redis Pub/Sub -> Socket.IO -> UI)
   useEffect(() => {
@@ -163,10 +192,38 @@ export function App() {
       fetchTasks();
     };
 
+    const handleTeamCreated = (payload) => {
+      const newTeam = payload.team;
+      if (!newTeam) return;
+      setTeams((prev) => {
+        if (prev.some((t) => t._id === newTeam._id)) return prev;
+        return [...prev, newTeam];
+      });
+      showToast(`New team "${newTeam.name}" added ⚡`, 'info');
+    };
+
+    const handleTeamUpdated = (payload) => {
+      const updatedTeam = payload.team;
+      if (!updatedTeam) return;
+      setTeams((prev) =>
+        prev.map((t) => (t._id === updatedTeam._id ? { ...t, ...updatedTeam } : t))
+      );
+    };
+
+    const handleTeamDeleted = (payload) => {
+      const { teamId } = payload;
+      if (!teamId) return;
+      setTeams((prev) => prev.filter((t) => t._id !== teamId));
+      showToast('A team was removed ⚡', 'info');
+    };
+
     socket.on('task:updated', handleTaskUpdated);
     socket.on('task:created', handleTaskCreated);
     socket.on('task:deleted', handleTaskDeleted);
     socket.on('task:reordered', handleTaskReordered);
+    socket.on('team:created', handleTeamCreated);
+    socket.on('team:updated', handleTeamUpdated);
+    socket.on('team:deleted', handleTeamDeleted);
 
     return () => {
       if (currentWorkspace?._id) {
@@ -176,6 +233,9 @@ export function App() {
       socket.off('task:created', handleTaskCreated);
       socket.off('task:deleted', handleTaskDeleted);
       socket.off('task:reordered', handleTaskReordered);
+      socket.off('team:created', handleTeamCreated);
+      socket.off('team:updated', handleTeamUpdated);
+      socket.off('team:deleted', handleTeamDeleted);
     };
   }, [user, currentWorkspace, fetchTasks]);
 
@@ -183,14 +243,11 @@ export function App() {
   const handleAuthSuccess = (authenticatedUser) => {
     setUser(authenticatedUser);
     setAuthModal({ isOpen: false, mode: 'signin' });
+    const saved = localStorage.getItem('taskflow_mainNavView');
     if (authenticatedUser.role === 'admin') {
-      setMainNavView('admin');
-      localStorage.setItem('taskflow_mainNavView', 'admin');
+      setMainNavView(saved || 'admin');
     } else {
-      const saved = localStorage.getItem('taskflow_mainNavView');
-      if (saved === 'admin') {
-        setMainNavView('admin');
-      }
+      setMainNavView(saved === 'team' ? 'team' : 'dashboard');
     }
     showToast(`Welcome, ${authenticatedUser.name}!`);
   };
@@ -284,7 +341,10 @@ export function App() {
             <TeamBoardView
               currentWorkspace={currentWorkspace}
               user={user}
-              onOpenTeamModal={() => setTeamModalState({ isOpen: true, tab: 'list' })}
+              teams={teams}
+              loading={teamsLoading}
+              onFetchTeams={fetchTeams}
+              onOpenTeamModal={(tab = 'list') => setTeamModalState({ isOpen: true, tab })}
             />
           ) : (
             <Dashboard
@@ -364,12 +424,30 @@ export function App() {
       {teamModalState.isOpen && (
         <TeamModal
           isOpen={teamModalState.isOpen}
+          initialTab={teamModalState.tab || 'list'}
           onClose={() => setTeamModalState({ isOpen: false, tab: 'list' })}
           currentWorkspace={currentWorkspace}
+          teams={teams}
           onShowToast={showToast}
-          onTeamCreated={(team) => {
+          onTeamCreated={(newTeam) => {
+            setTeams((prev) => {
+              if (prev.some((t) => t._id === newTeam._id)) return prev;
+              return [...prev, newTeam];
+            });
             setTeamModalState({ isOpen: false, tab: 'list' });
             showToast('Team created successfully!');
+          }}
+          onTeamUpdated={(updatedTeam) => {
+            if (updatedTeam?._id) {
+              setTeams((prev) =>
+                prev.map((t) => (t._id === updatedTeam._id ? updatedTeam : t))
+              );
+            } else {
+              fetchTeams();
+            }
+          }}
+          onTeamDeleted={(teamId) => {
+            setTeams((prev) => prev.filter((t) => t._id !== teamId));
           }}
         />
       )}

@@ -1,6 +1,6 @@
 import { Schema, model } from "mongoose";
 
-export const taskStatuses = ["todo", "in_progress", "blocked", "done", "archived"];
+export const taskStatuses = ["todo", "in_progress", "blocked", "done", "completed", "archived"];
 export const taskPriorities = ["low", "medium", "high", "urgent"];
 
 const taskSchema = new Schema(

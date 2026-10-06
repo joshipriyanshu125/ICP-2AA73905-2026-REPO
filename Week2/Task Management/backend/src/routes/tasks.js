@@ -93,10 +93,6 @@ taskRouter.get("/", async (req, res, next) => {
       page,
       totalPages: Math.ceil(total / limit)
     });
-  }
-
-  const tasks = await Task.find(filter).sort(sort).populate("assigneeId", "name email avatarUrl").populate("labels");
-  return res.json({ tasks });
   } catch (error) {
     return next(error);
   }

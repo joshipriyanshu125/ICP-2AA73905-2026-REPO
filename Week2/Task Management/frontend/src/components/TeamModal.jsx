@@ -2,10 +2,20 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { X, Plus, UserPlus, Trash2, Users, Mail, Check, AlertCircle, User } from 'lucide-react';
 import { api } from '../api';
 
-export function TeamModal({ isOpen, onClose, currentWorkspace, onTeamCreated, onTeamUpdated, onShowToast }) {
-  const [teams, setTeams] = useState([]);
+export function TeamModal({ 
+  isOpen, 
+  onClose, 
+  currentWorkspace, 
+  onTeamCreated, 
+  onTeamUpdated, 
+  onTeamDeleted,
+  onShowToast,
+  initialTab = 'list',
+  teams: propTeams
+}) {
+  const [internalTeams, setInternalTeams] = useState([]);
   const [activeTeam, setActiveTeam] = useState(null);
-  const [activeTab, setActiveTab] = useState('list'); // 'list' | 'create' | 'invite'
+  const [activeTab, setActiveTab] = useState(initialTab || 'list'); // 'list' | 'create' | 'invite'
   const [teamName, setTeamName] = useState('');
   const [teamDescription, setTeamDescription] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
@@ -14,11 +24,14 @@ export function TeamModal({ isOpen, onClose, currentWorkspace, onTeamCreated, on
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
+  const isControlled = Array.isArray(propTeams);
+  const teams = isControlled ? propTeams : internalTeams;
+
   const fetchTeams = useCallback(async () => {
     if (!currentWorkspace?._id) return;
     try {
       const res = await api.getTeams(currentWorkspace._id);
-      if (res?.teams) setTeams(res.teams);
+      if (res?.teams) setInternalTeams(res.teams);
     } catch (err) {
       console.warn('Fetch teams error:', err.message);
     }
@@ -26,9 +39,14 @@ export function TeamModal({ isOpen, onClose, currentWorkspace, onTeamCreated, on
 
   useEffect(() => {
     if (isOpen) {
-      fetchTeams();
+      setActiveTab(initialTab || 'list');
+      setErrorMsg('');
+      setSuccessMsg('');
+      if (!isControlled) {
+        fetchTeams();
+      }
     }
-  }, [isOpen, fetchTeams]);
+  }, [isOpen, initialTab, isControlled, fetchTeams]);
 
   const resetForm = () => {
     setTeamName('');
@@ -50,7 +68,9 @@ export function TeamModal({ isOpen, onClose, currentWorkspace, onTeamCreated, on
     try {
       const res = await api.createTeam(currentWorkspace._id, teamName.trim(), teamDescription.trim());
       if (res?.team) {
-        setTeams((prev) => [...prev, res.team]);
+        if (!isControlled) {
+          setInternalTeams((prev) => [...prev, res.team]);
+        }
         setSuccessMsg('Team created successfully!');
         resetForm();
         setActiveTab('list');
@@ -73,10 +93,13 @@ export function TeamModal({ isOpen, onClose, currentWorkspace, onTeamCreated, on
     try {
       const res = await api.inviteToTeam(activeTeam._id, inviteEmail.trim(), inviteRole);
       if (res?.team) {
-        setTeams((prev) => prev.map((t) => (t._id === res.team._id ? res.team : t)));
+        if (!isControlled) {
+          setInternalTeams((prev) => prev.map((t) => (t._id === res.team._id ? res.team : t)));
+        }
         setActiveTeam(res.team);
         setSuccessMsg(`Invitation sent to ${inviteEmail}!`);
         setInviteEmail('');
+        if (onTeamUpdated) onTeamUpdated(res.team);
       }
     } catch (err) {
       setErrorMsg(err.message || 'Failed to send invitation.');
@@ -91,25 +114,16 @@ export function TeamModal({ isOpen, onClose, currentWorkspace, onTeamCreated, on
 
     try {
       await api.removeTeamMember(activeTeam._id, userId);
-      setTeams((prev) =>
-        prev.map((t) =>
-          t._id === activeTeam._id
-            ? {
-                ...t,
-                members: t.members.filter((m) => m.userId?._id !== userId)
-              }
-            : t
-        )
-      );
-      setActiveTeam((prev) =>
-        prev
-          ? {
-              ...prev,
-              members: prev.members.filter((m) => m.userId?._id !== userId)
-            }
-          : prev
-      );
-      if (onTeamUpdated) onTeamUpdated();
+      const updatedMembers = (activeTeam.members || []).filter((m) => (m.userId?._id || m.userId) !== userId);
+      const updatedTeam = { ...activeTeam, members: updatedMembers };
+
+      if (!isControlled) {
+        setInternalTeams((prev) =>
+          prev.map((t) => (t._id === activeTeam._id ? updatedTeam : t))
+        );
+      }
+      setActiveTeam(updatedTeam);
+      if (onTeamUpdated) onTeamUpdated(updatedTeam);
       if (onShowToast) onShowToast('Member removed from team.', 'success');
     } catch (err) {
       if (onShowToast) onShowToast(err.message || 'Failed to remove member.', 'error');
@@ -120,11 +134,14 @@ export function TeamModal({ isOpen, onClose, currentWorkspace, onTeamCreated, on
     if (!window.confirm('Delete this team? This cannot be undone.')) return;
     try {
       await api.deleteTeam(teamId);
-      setTeams((prev) => prev.filter((t) => t._id !== teamId));
+      if (!isControlled) {
+        setInternalTeams((prev) => prev.filter((t) => t._id !== teamId));
+      }
       if (activeTeam?._id === teamId) {
         setActiveTeam(null);
         setActiveTab('list');
       }
+      if (onTeamDeleted) onTeamDeleted(teamId);
       if (onShowToast) onShowToast('Team deleted.', 'success');
     } catch (err) {
       if (onShowToast) onShowToast(err.message || 'Failed to delete team.', 'error');

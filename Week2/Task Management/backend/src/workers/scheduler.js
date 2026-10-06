@@ -14,7 +14,7 @@ export function initScheduler() {
 
       // Find tasks due within the next 2 hours that are not done
       const dueTasks = await Task.find({
-        status: { $ne: "done" },
+        status: { $nin: ["done", "completed"] },
         dueDate: { $gte: now, $lte: inTwoHours }
       });
 
@@ -52,7 +52,7 @@ export function initScheduler() {
       // Find tasks with recurrence enabled
       const recurringTasks = await Task.find({
         "recurrence.pattern": { $in: ["daily", "weekly", "monthly"] },
-        status: { $in: ["done", "todo"] }
+        status: { $in: ["done", "completed", "todo"] }
       });
 
       for (const task of recurringTasks) {
@@ -74,7 +74,7 @@ export function initScheduler() {
         }
 
         // If completed or past due, spawn next task occurrence or reset
-        if (task.status === "done" && nextDue > now) {
+        if ((task.status === "done" || task.status === "completed") && nextDue > now) {
           await Task.create({
             title: task.title,
             description: task.description,
@@ -117,7 +117,7 @@ export function initScheduler() {
 
       // Find unfinished tasks due today or overdue
       const dueTasks = await Task.find({
-        status: { $ne: "done" },
+        status: { $nin: ["done", "completed"] },
         $or: [
           { dueDate: { $gte: startOfDay, $lte: endOfDay } },
           { dueDate: { $lt: startOfDay } }

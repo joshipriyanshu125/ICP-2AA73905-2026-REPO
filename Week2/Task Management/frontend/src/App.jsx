@@ -17,6 +17,7 @@ const INITIAL_FALLBACK_TASKS = [];
 
 export function App() {
   const [user, setUser] = useState(api.user);
+  const [authLoading, setAuthLoading] = useState(Boolean(api.token));
   const [tasks, setTasks] = useState([]);
   const [workspaces, setWorkspaces] = useState([]);
   const [currentWorkspace, setCurrentWorkspace] = useState(null);
@@ -40,6 +41,21 @@ export function App() {
     setTimeout(() => setToast(null), 3500);
   };
 
+  // Listen for unrecoverable 401 / auth invalidation event
+  useEffect(() => {
+    const handleAuthInvalid = () => {
+      setUser(null);
+      setTasks([]);
+      setWorkspaces([]);
+      setCurrentWorkspace(null);
+      setMainNavView('dashboard');
+      showToast('Session expired. Please sign in again.', 'error');
+    };
+
+    window.addEventListener('taskflow:auth-invalid', handleAuthInvalid);
+    return () => window.removeEventListener('taskflow:auth-invalid', handleAuthInvalid);
+  }, []);
+
   // On mount: check URL for password-reset token and auto-open the reset modal
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -53,7 +69,7 @@ export function App() {
     localStorage.setItem('taskflow_mainNavView', mainNavView);
   }, [mainNavView]);
 
-  // Fetch initial user profile & check token
+  // Initial Auth Check & profile synchronization
   useEffect(() => {
     if (api.token) {
       api.getMe()
@@ -76,16 +92,41 @@ export function App() {
             }
           }
         })
-        .catch(() => {
-          // Token invalid
+        .catch((err) => {
+          console.warn('Initial auth check noticed:', err.message);
           setUser(null);
+        })
+        .finally(() => {
+          setAuthLoading(false);
         });
+    } else {
+      setAuthLoading(false);
     }
   }, []);
 
-  // Fetch workspaces & tasks when user logs in or workspace changes
+  // Fetch workspaces when user is authenticated
+  const fetchWorkspaces = useCallback(async () => {
+    if (!user?._id) return;
+    try {
+      const res = await api.getWorkspaces();
+      if (Array.isArray(res?.workspaces)) {
+        const savedWorkspaceId = localStorage.getItem(`taskflow_workspace_${user._id}`);
+        setWorkspaces(res.workspaces);
+        setCurrentWorkspace((current) => {
+          if (current && res.workspaces.some((w) => w._id === current._id)) {
+            return current;
+          }
+          return res.workspaces.find((w) => w._id === savedWorkspaceId) || res.workspaces[0] || null;
+        });
+      }
+    } catch (err) {
+      console.warn('Fetch workspaces error:', err);
+    }
+  }, [user?._id]);
+
+  // Fetch tasks for current workspace
   const fetchTasks = useCallback(async () => {
-    if (!user) return;
+    if (!user?._id) return;
     try {
       const res = await api.getTasks({ workspaceId: currentWorkspace?._id });
       setTasks(res?.tasks || []);
@@ -93,30 +134,11 @@ export function App() {
       console.warn('Fetch tasks error:', err.message);
       setTasks([]);
     }
-  }, [user, currentWorkspace]);
+  }, [user?._id, currentWorkspace?._id]);
 
-  const fetchWorkspaces = useCallback(async () => {
-    if (!user) return;
-    try {
-      const res = await api.getWorkspaces();
-      if (Array.isArray(res?.workspaces)) {
-        const savedWorkspaceId = localStorage.getItem(`taskflow_workspace_${user._id}`);
-        setWorkspaces((previous) => {
-          const workspacesById = new Map(previous.map((workspace) => [workspace._id, workspace]));
-          res.workspaces.forEach((workspace) => workspacesById.set(workspace._id, workspace));
-          return Array.from(workspacesById.values());
-        });
-        setCurrentWorkspace((current) =>
-          current || res.workspaces.find((workspace) => workspace._id === savedWorkspaceId) || res.workspaces[0] || null
-        );
-      }
-    } catch (err) {
-      console.warn('Fetch workspaces error:', err);
-    }
-  }, [user]);
-
+  // Fetch teams for current workspace
   const fetchTeams = useCallback(async () => {
-    if (!user || !currentWorkspace?._id) {
+    if (!user?._id || !currentWorkspace?._id) {
       setTeams([]);
       return;
     }
@@ -134,25 +156,33 @@ export function App() {
     } finally {
       setTeamsLoading(false);
     }
-  }, [user, currentWorkspace]);
+  }, [user?._id, currentWorkspace?._id]);
 
+  // Save selected workspace ID
   useEffect(() => {
     if (user?._id && currentWorkspace?._id) {
       localStorage.setItem(`taskflow_workspace_${user._id}`, currentWorkspace._id);
     }
-  }, [user, currentWorkspace]);
+  }, [user?._id, currentWorkspace?._id]);
 
+  // Initial workspaces fetch on user sign-in
   useEffect(() => {
-    if (user) {
-      fetchTasks();
+    if (user?._id && !authLoading) {
       fetchWorkspaces();
+    }
+  }, [user?._id, authLoading, fetchWorkspaces]);
+
+  // Fetch tasks and teams when current workspace is active
+  useEffect(() => {
+    if (user?._id && !authLoading) {
+      fetchTasks();
       fetchTeams();
     }
-  }, [user, fetchTasks, fetchWorkspaces, fetchTeams]);
+  }, [user?._id, currentWorkspace?._id, authLoading, fetchTasks, fetchTeams]);
 
-  // Real-time Socket.IO Subscriptions (Task updated -> Mongo -> EventBus -> Redis Pub/Sub -> Socket.IO -> UI)
+  // Real-time Socket.IO Subscriptions
   useEffect(() => {
-    if (!user) return;
+    if (!user?._id) return;
     updateSocketAuth(api.token);
     const socket = getSocket();
 
@@ -237,12 +267,13 @@ export function App() {
       socket.off('team:updated', handleTeamUpdated);
       socket.off('team:deleted', handleTeamDeleted);
     };
-  }, [user, currentWorkspace, fetchTasks]);
+  }, [user?._id, currentWorkspace?._id, fetchTasks]);
 
   // Auth Handlers
   const handleAuthSuccess = (authenticatedUser) => {
     setUser(authenticatedUser);
     setAuthModal({ isOpen: false, mode: 'signin' });
+    updateSocketAuth(api.token);
     const saved = localStorage.getItem('taskflow_mainNavView');
     if (authenticatedUser.role === 'admin') {
       setMainNavView(saved || 'admin');
@@ -293,8 +324,12 @@ export function App() {
       }
     } else {
       try {
-        const res = await api.createTask(taskPayload);
-        const created = res?.task || taskPayload;
+        const payloadWithWorkspace = {
+          ...taskPayload,
+          ...(currentWorkspace?._id ? { workspaceId: currentWorkspace._id } : {})
+        };
+        const res = await api.createTask(payloadWithWorkspace);
+        const created = res?.task || payloadWithWorkspace;
         setTasks((prev) => [created, ...prev]);
         showToast('Task created! 🚀');
       } catch (err) {
@@ -316,6 +351,34 @@ export function App() {
       showToast('Failed to delete task.', 'error');
     }
   };
+
+  const handleReorderTasks = async (newTasks) => {
+    const prev = tasks;
+    setTasks(newTasks);
+    try {
+      const payload = newTasks.map((t, idx) => ({
+        id: t._id,
+        position: idx,
+        status: t.status
+      }));
+      await api.reorderTasks(payload, currentWorkspace?._id);
+    } catch (err) {
+      console.warn('Task reorder error:', err);
+      setTasks(prev);
+      showToast('Failed to save task order.', 'error');
+    }
+  };
+
+  if (authLoading) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FAF7F2' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ width: '40px', height: '40px', border: '3px solid rgba(194, 85, 8, 0.2)', borderTopColor: '#C25508', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+          <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Loading TaskFlow...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -357,7 +420,7 @@ export function App() {
               onEditTask={(task) => setTaskModal({ isOpen: true, task, defaultDate: null })}
               onOpenTaskDetail={(task) => setDetailDrawerTask(task)}
               onDeleteTask={handleDeleteTask}
-              onReorderTasks={(newTasks) => setTasks(newTasks)}
+              onReorderTasks={handleReorderTasks}
             />
           )
         ) : (

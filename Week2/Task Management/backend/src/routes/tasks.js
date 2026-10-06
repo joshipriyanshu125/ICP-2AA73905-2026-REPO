@@ -129,7 +129,7 @@ taskRouter.post("/", async (req, res, next) => {
 // 3. PATCH /api/tasks/reorder (Drag-and-drop order updates)
 taskRouter.patch("/reorder", async (req, res, next) => {
   try {
-    const { tasks } = z
+    const { tasks, workspaceId } = z
       .object({
         tasks: z
           .array(
@@ -139,21 +139,30 @@ taskRouter.patch("/reorder", async (req, res, next) => {
               status: z.enum(taskStatuses).optional()
             })
           )
-          .min(1)
+          .min(1),
+        workspaceId: z.string().refine(Types.ObjectId.isValid).optional()
       })
       .parse(req.body);
 
-    const owned = await Task.countDocuments({
-      _id: { $in: tasks.map((task) => task.id) },
-      ownerId: req.userId
+    const taskIds = tasks.map((task) => task.id);
+    const existing = await Task.find({
+      _id: { $in: taskIds },
+      $or: [{ ownerId: req.userId }, { assigneeId: req.userId }]
     });
 
-    if (owned !== tasks.length) return res.status(404).json({ message: "One or more tasks were not found." });
+    if (existing.length === 0) {
+      return res.status(404).json({ message: "No matching tasks found to reorder." });
+    }
+
+    const detectedWorkspaceId = workspaceId || existing[0]?.workspaceId?.toString();
 
     await Task.bulkWrite(
       tasks.map((task) => ({
         updateOne: {
-          filter: { _id: task.id, ownerId: req.userId },
+          filter: { 
+            _id: task.id, 
+            $or: [{ ownerId: req.userId }, { assigneeId: req.userId }] 
+          },
           update: {
             $set: {
               position: task.position,
@@ -164,7 +173,11 @@ taskRouter.patch("/reorder", async (req, res, next) => {
       }))
     );
 
-    eventBus.emit("task:reordered", { tasks, userId: req.userId });
+    eventBus.emit("task:reordered", { 
+      tasks, 
+      userId: req.userId,
+      workspaceId: detectedWorkspaceId
+    });
 
     return res.json({ message: "Task order saved." });
   } catch (error) {

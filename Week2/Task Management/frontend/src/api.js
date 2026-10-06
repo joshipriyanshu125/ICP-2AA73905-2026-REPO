@@ -1,12 +1,13 @@
-// TaskFlow Frontend API Client with seamless connectivity and fallback
-
-const API_BASE = '/api';
+// TaskFlow Frontend API Client with seamless connectivity, dynamic base URL, and fallback
+const envApiUrl = import.meta.env?.VITE_API_URL || '';
+const API_BASE = envApiUrl ? envApiUrl.replace(/\/+$/, '') : '/api';
 
 class ApiClient {
   constructor() {
     this.token = localStorage.getItem('taskflow_token') || null;
     this.refreshToken = localStorage.getItem('taskflow_refreshToken') || null;
     this.user = JSON.parse(localStorage.getItem('taskflow_user') || 'null');
+    this.refreshPromise = null;
   }
 
   setAuth(token, refreshToken, user) {
@@ -35,20 +36,30 @@ class ApiClient {
       headers['Authorization'] = `Bearer ${this.token}`;
     }
 
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    const url = cleanPath.startsWith('http://') || cleanPath.startsWith('https://')
+      ? cleanPath
+      : `${API_BASE}${cleanPath}`;
+
     try {
-      const response = await fetch(`${API_BASE}${path}`, {
+      const response = await fetch(url, {
         ...options,
         headers,
       });
 
-      // Handle 401 Unauthorized - attempt token refresh
-      if (response.status === 401 && this.refreshToken && !options._retry && path !== '/auth/signin' && path !== '/auth/signup') {
-        const refreshed = await this.refreshAuth();
-        if (refreshed) {
-          options._retry = true;
-          return this.request(path, options);
-        } else {
-          this.clearAuth();
+      // Handle 401 Unauthorized - attempt token refresh with single shared promise
+      if (response.status === 401 && !options._retry && path !== '/auth/signin' && path !== '/auth/signup') {
+        if (this.refreshToken) {
+          const refreshed = await this.refreshAuth();
+          if (refreshed) {
+            options._retry = true;
+            return this.request(path, options);
+          }
+        }
+        // Refresh failed or no refresh token
+        this.clearAuth();
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('taskflow:auth-invalid'));
         }
       }
 
@@ -70,22 +81,41 @@ class ApiClient {
   }
 
   async refreshAuth() {
-    try {
-      const res = await fetch(`${API_BASE}/auth/refresh`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken: this.refreshToken }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        this.token = data.token;
-        localStorage.setItem('taskflow_token', data.token);
-        return true;
-      }
-    } catch (e) {
-      console.error('Refresh token failed:', e);
+    if (this.refreshPromise) {
+      return this.refreshPromise;
     }
-    return false;
+
+    this.refreshPromise = (async () => {
+      try {
+        if (!this.refreshToken) return false;
+        const cleanPath = '/auth/refresh';
+        const url = `${API_BASE}${cleanPath}`;
+
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken: this.refreshToken }),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          this.token = data.token;
+          localStorage.setItem('taskflow_token', data.token);
+          if (data.user) {
+            this.user = { ...this.user, ...data.user };
+            localStorage.setItem('taskflow_user', JSON.stringify(this.user));
+          }
+          return true;
+        }
+      } catch (e) {
+        console.warn('Refresh token request failed:', e.message);
+      } finally {
+        this.refreshPromise = null;
+      }
+      return false;
+    })();
+
+    return this.refreshPromise;
   }
 
   // --- Auth Endpoints ---
@@ -258,10 +288,10 @@ class ApiClient {
     });
   }
 
-  async reorderTasks(tasks) {
+  async reorderTasks(tasks, workspaceId) {
     return this.request('/tasks/reorder', {
       method: 'PATCH',
-      body: JSON.stringify({ tasks }),
+      body: JSON.stringify({ tasks, workspaceId }),
     });
   }
 

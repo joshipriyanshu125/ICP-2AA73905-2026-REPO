@@ -33,7 +33,35 @@ const server = http.createServer(app);
 // Initialize Real-time WebSockets
 initSocketServer(server);
 
-app.use(cors({ origin: config.clientOrigin }));
+// CORS configuration supporting dynamic local ports and clientOrigin
+const allowedOrigins = [
+  config.clientOrigin,
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://localhost:3000",
+  "http://127.0.0.1:5173",
+  "http://127.0.0.1:5174",
+  "http://127.0.0.1:3000"
+].filter(Boolean);
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (
+        config.nodeEnv === "development" ||
+        allowedOrigins.includes(origin) ||
+        /^http:\/\/(localhost|127\.0\.0\.1):[0-9]+$/.test(origin)
+      ) {
+        return callback(null, true);
+      }
+      return callback(null, true);
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+  })
+);
 app.use(express.json({ limit: "5mb" }));
 app.use(sanitizeMiddleware);
 

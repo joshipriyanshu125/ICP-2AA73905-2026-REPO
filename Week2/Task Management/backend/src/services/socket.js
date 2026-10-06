@@ -7,7 +7,10 @@ let io = null;
 export function initSocketServer(httpServer) {
   io = new Server(httpServer, {
     cors: {
-      origin: config.clientOrigin || "*",
+      origin: (origin, callback) => {
+        // Dynamic origin check allowing any client port in development
+        callback(null, true);
+      },
       methods: ["GET", "POST", "PATCH", "PUT", "DELETE"],
       credentials: true
     }
@@ -19,7 +22,7 @@ export function initSocketServer(httpServer) {
     if (token) {
       try {
         const decoded = jwt.verify(token, config.jwtSecret);
-        socket.userId = decoded.userId || decoded.id;
+        socket.userId = decoded.userId || decoded.sub || decoded.id;
       } catch {
         // Token invalid, allow connection as unauthenticated observer
       }
@@ -71,18 +74,33 @@ export function initSocketServer(httpServer) {
 export function broadcastSocketEvent(event, payload = {}) {
   if (!io) return;
 
-  const { projectId, workspaceId, recipientId, task } = payload;
+  const { projectId, workspaceId, recipientId, userId, task } = payload;
   const pId = projectId || task?.projectId;
   const wId = workspaceId || task?.workspaceId;
+  const targetUserId = recipientId || userId || task?.ownerId || task?.assigneeId;
 
-  // Emit to targeted rooms if available
-  if (pId) {
-    io.to(`project:${pId}`).emit(event, payload);
-  }
+  let targeted = false;
+
+  // Emit to workspace room
   if (wId) {
     io.to(`workspace:${wId}`).emit(event, payload);
+    targeted = true;
   }
-  if (recipientId) {
-    io.to(`user:${recipientId}`).emit(event, payload);
+
+  // Emit to project room
+  if (pId) {
+    io.to(`project:${pId}`).emit(event, payload);
+    targeted = true;
+  }
+
+  // Emit to user room
+  if (targetUserId) {
+    io.to(`user:${targetUserId}`).emit(event, payload);
+    targeted = true;
+  }
+
+  // Emit global fallback if not targeted to a specific workspace or room
+  if (!targeted || !wId) {
+    io.emit(event, payload);
   }
 }

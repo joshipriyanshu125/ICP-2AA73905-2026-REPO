@@ -153,7 +153,27 @@ authRouter.post("/refresh", async (req, res, next) => {
     if (!user) return res.status(401).json({ message: "User not found or deactivated." });
 
     const newToken = createToken(user._id.toString());
-    return res.json({ token: newToken });
+
+    // Create session record for new token so requireAuth passes
+    await Session.create({
+      userId: user._id,
+      token: newToken,
+      userAgent: req.headers["user-agent"] || "",
+      ipAddress: req.ip || "",
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+    });
+
+    return res.json({ 
+      token: newToken,
+      user: { 
+        id: user._id, 
+        name: user.name, 
+        email: user.email, 
+        role: user.role || "user", 
+        timezone: user.timezone, 
+        avatarUrl: user.avatarUrl 
+      } 
+    });
   } catch (error) {
     return res.status(401).json({ message: "Invalid or expired refresh token." });
   }
@@ -214,7 +234,7 @@ authRouter.post("/reset-password", async (req, res, next) => {
 
 authRouter.get("/me", requireAuth, async (req, res, next) => {
   try {
-    const user = await User.findById(req.userId).select("name email avatarUrl timezone preferences isEmailVerified createdAt");
+    const user = await User.findById(req.userId).select("name email role avatarUrl timezone preferences isEmailVerified createdAt");
     if (!user) return res.status(404).json({ message: "User not found." });
     return res.json({ user: { id: user._id, ...user.toObject() } });
   } catch (error) {

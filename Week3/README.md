@@ -1,124 +1,403 @@
-# Week 3: Project 1 Completion
+# Week 3: Production Deployment & Live Hosting Guide
 
-## Intern Career Path — Web Development
-**Portal ID:** `ICP-2AA73905-2026`  
+**Internship Portal ID:** `ICP-2AA73905-2026`  
 **Repository:** [https://github.com/joshipriyanshu125/ICP-2AA73905-2026-REPO.git](https://github.com/joshipriyanshu125/ICP-2AA73905-2026-REPO.git)  
-**Project Name:** TaskFlow — Full-Stack Real-Time Task Management System  
-**Internship Week:** Week 3  
+**Project:** TaskFlow (Full-Stack MERN + Redis + Socket.IO)
 
 ---
 
-## 📋 Objectives & Deliverables Summary
+## 🌐 Live Deployment — Client Access
 
-| Target Task | Status | Implementation Details |
-| :--- | :---: | :--- |
-| **Complete Project 1 with Polished UI/UX** | ✅ Completed | Fully responsive editorial UI, Status Metric Cards, Drag-and-Drop List View, Interactive Month Calendar View with Priority Chips, and Tagging System. |
-| **Real-Time Architecture & Event Pipeline** | ✅ Completed | End-to-end distributed event pipeline: `Task Update → MongoDB → EventBus → Redis Pub/Sub → Socket.IO Rooms → Live UI Sync`. |
-| **Production Build & Verification** | ✅ Completed | Zero-error Vite frontend build + 14/14 automated backend test suites passing. |
-| **Live Hosting & Deployment Guide** | ✅ Completed | Comprehensive multi-platform deployment instructions (Vercel / Render / Railway / Docker / MongoDB Atlas / Redis Cloud). |
-| **Technical Documentation & Learnings** | ✅ Completed | Comprehensive architectural breakdown, API contracts, security configurations, and key engineering takeaways. |
+The TaskFlow application has been successfully deployed and is accessible online.
+
+### Frontend — TaskFlow Web Application
+
+**Live Frontend:**  
+👉 [https://taskflow-frontend-blond.vercel.app/](https://taskflow-frontend-blond.vercel.app/)
+
+This is the main URL for clients and users to access the TaskFlow application.
+
+### Backend — TaskFlow API
+
+**Live Backend:**  
+👉 [https://taskflow-odak.onrender.com/](https://taskflow-odak.onrender.com/)
+
+The backend provides the REST API and WebSocket services required by the TaskFlow frontend.
+
+### 🔗 Quick Access
+
+| Service | Platform | Live URL |
+| :--- | :--- | :--- |
+| **Frontend** | Vercel | [https://taskflow-frontend-blond.vercel.app/](https://taskflow-frontend-blond.vercel.app/) |
+| **Backend API** | Render | [https://taskflow-odak.onrender.com/](https://taskflow-odak.onrender.com/) |
+
+> **Client Access:** To use the TaskFlow application, open the **Frontend URL** above. The Backend URL is provided for API/service access and deployment verification.
 
 ---
 
-## 🚀 Project Overview: TaskFlow
+## 1. Production Architecture Overview
 
-**TaskFlow** is a modern, high-performance collaborative task management system built on the **MERN** stack (MongoDB, Express, React, Node.js) reinforced with **Redis Pub/Sub** and **Socket.IO** for instantaneous multi-user synchronization.
-
-### Key Highlights:
-* **Editorial Design System:** Built with an intentional warm color palette, custom serif and sans typography, and micro-animations for focus and clarity.
-* **Dual View Modes:**
-  * **List View:** Full drag-and-drop task ordering, priority pill indicators, category tags, inline completion checkboxes, and quick actions.
-  * **Calendar View:** Complete interactive month view with day grids, current-day indicator, priority-coded chips, direct date-cell task creation, and a priority legend.
-* **Multi-Metric Dashboard:** Real-time counters for *Total tasks*, *To do*, *In progress*, and *Done* with color-coded status badges.
-* **Granular Filtering & Search:** Real-time search by keyword across titles and descriptions, filtered by status, priority, category, tags, and custom sort order.
-* **Real-time Collaboration:** Cross-client real-time synchronization backed by Redis Pub/Sub channels and Socket.IO room subscriptions (`workspace:<id>`, `project:<id>`).
-* **Robust Security & Resilience:** JWT authentication with refresh token rotation, bcrypt password hashing, dynamic rate limiting, XSS sanitization, and automated test-domain email filtering.
-
----
-
-## 🏗️ Architectural Data Flow
-
-```
-+-------------------------------------------------------------+
-|                       Client Action                         |
-|      (User creates, edits, reorders, or deletes a task)     |
-+-------------------------------------------------------------+
-                              |
-                              v
-+-------------------------------------------------------------+
-|                     REST API Request                        |
-|       (PATCH /api/tasks/:id with JWT Bearer Token)          |
-+-------------------------------------------------------------+
-                              |
-                              v
-+-------------------------------------------------------------+
-|                    MongoDB Database Sync                    |
-|        (Mongoose updates document & Activity history)       |
-+-------------------------------------------------------------+
-                              |
-                              v
-+-------------------------------------------------------------+
-|                   Backend App Event Bus                     |
-|           (Node.js EventEmitter fires task:updated)         |
-+-------------------------------------------------------------+
-                              |
-                              v
-+-------------------------------------------------------------+
-|                      Redis Pub/Sub                          |
-|    (Publishes message across distributed backend instances) |
-+-------------------------------------------------------------+
-                              |
-                              v
-+-------------------------------------------------------------+
-|                    Socket.IO Server                         |
-|     (Broadcasts to project & workspace subscriber rooms)    |
-+-------------------------------------------------------------+
-                              |
-                              v
-+-------------------------------------------------------------+
-|               All Connected Active Clients                  |
-|    (React state updates instantly without page refresh)     |
-+-------------------------------------------------------------+
+```text
++---------------------------+         +-------------------------------+
+|     Vercel / Netlify      |         |        Render / Railway       |
+|    Frontend (React/Vite)  | <-----> |   Backend API & WebSockets    |
+|   https://taskflow.app    |  HTTPS  |   https://api.taskflow.app    |
++---------------------------+   WSS   +-------------------------------+
+                                                     |
+                                                     |
+                  +----------------------------------+----------------------------------+
+                  |                                                                     |
+                  v                                                                     v
++--------------------------------------+                             +--------------------------------------+
+|           MongoDB Atlas              |                             |             Redis Cloud              |
+|   Managed Cluster (Primary Store)    |                             |      Managed Redis Pub/Sub & Cache   |
++--------------------------------------+                             +--------------------------------------+
 ```
 
----
+### Production Components
 
-## 📂 Week 3 Documentation Index
+The production architecture consists of:
 
-1. [Project 1 Detailed Completion Report](./project-1-completion-report.md) — Exhaustive breakdown of features, UI components, database schemas, and testing results.
-2. [Production Deployment & Hosting Guide](./deployment-guide.md) — Step-by-step instructions for deploying the frontend to Vercel and backend to Render / Railway / Docker.
-3. [Full Documentation & Engineering Learnings](./documentation.md) — Complete technical journal detailing engineering challenges, troubleshooting, and architectural learnings.
-
----
-
-## 🛠️ Technology Stack
-
-| Layer | Technologies Used |
-| :--- | :--- |
-| **Frontend** | React 18, Vite 6, Vanilla CSS (Design Tokens & Glassmorphism), Lucide Icons, Socket.IO Client |
-| **Backend** | Node.js (ES Modules), Express 5, Socket.IO, Multer, Nodemailer, Web-Push, node-cron |
-| **Database & Cache** | MongoDB (Mongoose ODM), Redis (ioredis — Pub/Sub & Cache layer) |
-| **Real-Time** | Redis Pub/Sub (`taskflow:realtime` channel), Socket.IO rooms (`project:<id>`, `workspace:<id>`, `user:<id>`) |
-| **Event Architecture** | Node.js EventEmitter app-event bus (`services/events.js`) — decouples DB writes from side-effects |
-| **Security & Auth** | JWT (Access `7d` + Refresh token pair), Bcrypt.js (12 rounds), express-rate-limit, XSS sanitization, Session revocation |
-| **Background Jobs** | node-cron scheduler (`workers/scheduler.js`) — due-date reminders, overdue notifications |
-| **Testing & Quality** | Node.js Test Runner (`node:test`, `node:assert/strict`) — 14 tests / 4 suites / 100% pass rate, Vite Production Bundler |
+- **Frontend:** React + Vite
+- **Frontend Hosting:** Vercel
+- **Backend:** Node.js + Express
+- **Backend Hosting:** Render
+- **Database:** MongoDB Atlas
+- **Caching / Pub/Sub:** Redis
+- **Real-Time Communication:** Socket.IO
+- **Transport Security:** HTTPS / WSS
+- **Version Control:** GitHub
 
 ---
 
-## 💡 Key Engineering Learnings
+## 2. Environment Variables Matrix
 
-1. **Distributed Real-Time Scaling with Redis Pub/Sub:**
-   * Traditional single-process WebSockets fail when multiple server instances or containers are deployed behind a load balancer. Integrating a dedicated Redis Pub/Sub layer (`ioredis`) via `services/pubsub.js` guarantees that socket events broadcast globally across all instances while maintaining an in-memory fallback for local development.
+### Backend Environment Variables (`.env`)
 
-2. **Resilient Event-Driven Architecture with App Event Bus:**
-   * Separating database write operations from external side-effects (push notifications, emails, websocket emissions) using the `services/events.js` Node.js EventEmitter bus prevents slow third-party services from degrading API response latency. Routes emit domain events; listeners handle async consequences independently.
+| Variable Name | Required | Example / Production Value | Description |
+| :--- | :---: | :--- | :--- |
+| `PORT` | Optional | `5000` (Assigned by hosting provider) | HTTP & WebSocket port. |
+| `NODE_ENV` | Required | `production` | Enables production security & optimizations. |
+| `MONGODB_URI` | Required | `mongodb+srv://<user>:<pass>@cluster0.mongodb.net/taskflow?retryWrites=true&w=majority` | MongoDB connection URI. |
+| `JWT_SECRET` | Required | `a-very-long-and-secure-random-string-64-chars` | Key for signing access tokens. |
+| `JWT_EXPIRES_IN` | Optional | `7d` | Access token lifespan. |
+| `CLIENT_ORIGIN` | Required | `https://taskflow-frontend-blond.vercel.app` | Allowed CORS origin for API & Socket.IO. |
+| `REDIS_URL` | Required | `redis://default:<password>@redis-12345.upstash.io:6379` | Managed Redis instance for Pub/Sub. |
+| `SMTP_HOST` | Optional | `smtp.gmail.com` / `smtp.sendgrid.net` | Email host provider. |
+| `SMTP_PORT` | Optional | `465` (SSL) or `587` (TLS) | Email service port. |
+| `SMTP_USER` | Optional | `your-email@gmail.com` | SMTP account username. |
+| `SMTP_PASS` | Optional | `your-app-specific-password` | SMTP account password/app key. |
+| `EMAIL_FROM` | Optional | `"TaskFlow <noreply@taskflow.app>"` | Sender address header. |
+| `VAPID_PUBLIC_KEY` | Optional | `BMVjc7__vSHhKw_Uvs_DQiRJABtpYT-...` | Web Push VAPID public key. |
+| `VAPID_PRIVATE_KEY` | Optional | `mhT4607xEnseFZRhXu2NkqHPOnaAY5...` | Web Push VAPID private key. |
+| `VAPID_SUBJECT` | Optional | `mailto:admin@taskflow.app` | VAPID contact subject. |
+| `UPLOAD_DIR` | Optional | `./uploads` | Storage directory for attachments. |
 
-3. **Production Mailer Resilience & Bounce Handling:**
-   * Connecting live SMTP credentials (e.g. Gmail) requires safeguards against automated test scripts generating dummy emails. The `EMAIL_DOMAIN` config value and domain filter in `services/email.js` prevent test-domain addresses (`@test.com`, `@example.com`) from causing mailer-daemon bounce-backs in administrator inboxes.
+> **Security:** Never commit `.env`, `.env.production`, passwords, JWT secrets, database credentials, Redis credentials, or API keys to GitHub. Production secrets should be added through the hosting provider's environment-variable settings.
 
-4. **Optimistic UI with Real-Time Reconciliation:**
-   * Providing instantaneous UI feedback on client interactions (e.g. drag-and-drop reordering or status toggle) coupled with background WebSocket confirmation (via `task:reordered` / `task:updated` socket events) creates a seamless user experience even on slow connections.
+---
 
-5. **Auto-Provisioned Default Workspace:**
-   * The workspace route (`GET /api/workspaces`) automatically creates and assigns a default workspace if the authenticated user has none. This eliminates blank-state edge cases on first login without requiring a separate onboarding step.
+## 3. Step-by-Step Deployment Instructions
+
+### Part A: Database & Redis Provisioning
+
+#### 1. MongoDB Atlas Cluster
+
+- Create a free M0 cluster on [MongoDB Atlas](https://www.mongodb.com/cloud/atlas).
+- Create a database user with Read/Write access to the `taskflow` database.
+- Under **Network Access**, add `0.0.0.0/0` or the specific IP range of your backend host.
+- Copy the SRV connection string into `MONGODB_URI`.
+- Verify that the backend can successfully connect to the cluster.
+
+#### 2. Redis Cloud / Upstash
+
+- Provision a free Redis database on [Upstash](https://upstash.com) or [Redis Cloud](https://redis.com).
+- Copy the connection string into `REDIS_URL`.
+- Verify Redis connectivity from the backend.
+- Redis is used for caching and Pub/Sub functionality.
+
+---
+
+### Part B: Backend Deployment — Render / Railway
+
+#### Deploying on Render
+
+1. Connect the GitHub repository:
+
+   ```text
+   https://github.com/joshipriyanshu125/ICP-2AA73905-2026-REPO.git
+   ```
+
+2. Select **Web Service**.
+
+3. Set the **Root Directory**:
+
+   ```text
+   Week2/Task Management/backend
+   ```
+
+   Use the actual backend directory if the project structure differs.
+
+4. Set the **Build Command**:
+
+   ```bash
+   npm install
+   ```
+
+5. Set the **Start Command**:
+
+   ```bash
+   npm start
+   ```
+
+6. Add all required production environment variables in the **Environment** section.
+
+7. Make sure the following values are configured correctly:
+
+   ```env
+   NODE_ENV=production
+   MONGODB_URI=<your-production-mongodb-uri>
+   JWT_SECRET=<your-secure-jwt-secret>
+   CLIENT_ORIGIN=https://taskflow-frontend-blond.vercel.app
+   REDIS_URL=<your-production-redis-url>
+   ```
+
+8. Deploy the service.
+
+9. The deployed backend is available at:
+
+   **https://taskflow-odak.onrender.com/**
+
+---
+
+### Part C: Frontend Deployment — Vercel / Netlify
+
+#### Deploying on Vercel
+
+1. Import the GitHub repository into the [Vercel Dashboard](https://vercel.com).
+
+2. Set the **Root Directory**:
+
+   ```text
+   Week2/Task Management/frontend
+   ```
+
+3. Set the **Framework Preset**:
+
+   ```text
+   Vite
+   ```
+
+4. Set the **Build Command**:
+
+   ```bash
+   npm run build
+   ```
+
+5. Set the **Output Directory**:
+
+   ```text
+   dist
+   ```
+
+6. Configure the frontend environment variables required by the application.
+
+7. If SPA routing requires a `vercel.json`, add:
+
+   ```json
+   {
+     "rewrites": [
+       {
+         "source": "/(.*)",
+         "destination": "/index.html"
+       }
+     ]
+   }
+   ```
+
+8. Click **Deploy**.
+
+9. The deployed frontend is available at:
+
+   **https://taskflow-frontend-blond.vercel.app/**
+
+10. Ensure the backend's `CLIENT_ORIGIN` is configured to use:
+
+   ```text
+   https://taskflow-frontend-blond.vercel.app
+   ```
+
+---
+
+## 4. Post-Deployment Verification & Health Check
+
+### 1. Frontend Verification
+
+Open the live frontend:
+
+**https://taskflow-frontend-blond.vercel.app/**
+
+Verify that:
+
+- The application loads successfully.
+- Login/Register works.
+- Tasks can be created.
+- Tasks can be updated.
+- Tasks can be deleted.
+- Projects/workspaces load correctly.
+- API requests are reaching the deployed backend.
+- No CORS errors appear in the browser console.
+
+---
+
+### 2. API Health Endpoint
+
+Navigate to:
+
+```text
+https://taskflow-odak.onrender.com/health
+```
+
+Expected response:
+
+```json
+{
+  "status": "ok",
+  "timestamp": "2026-10-02T11:00:00.000Z",
+  "services": {
+    "database": "connected",
+    "redis": "connected",
+    "scheduler": "active",
+    "storage": "local"
+  }
+}
+```
+
+> The exact response depends on the implementation of the backend health-check endpoint.
+
+A successful response should return:
+
+```text
+HTTP 200 OK
+```
+
+---
+
+### 3. Real-Time WebSockets Check
+
+To verify Socket.IO functionality:
+
+1. Open the live frontend in two separate browser windows or tabs.
+2. Sign in to the same account/workspace.
+3. Create a task in **Window 1**.
+4. Confirm that **Window 2** receives the update automatically.
+5. Update a task in **Window 1**.
+6. Confirm that the change appears in **Window 2** without a page reload.
+7. Delete a task and verify that the deletion is synchronized across both clients.
+
+This confirms that the deployed Socket.IO/WebSocket implementation is functioning correctly.
+
+---
+
+## 5. Production Deployment Checklist
+
+### Backend
+
+- [x] Backend deployed on Render
+- [x] Production environment configured
+- [x] MongoDB Atlas connected
+- [x] Redis configured
+- [x] JWT authentication configured
+- [x] CORS configured
+- [x] Socket.IO/WebSockets configured
+- [x] Environment variables configured
+- [x] API available online
+
+### Frontend
+
+- [x] React/Vite frontend deployed on Vercel
+- [x] Production build configured
+- [x] Backend API URL configured
+- [x] Frontend accessible publicly
+- [x] SPA routing configured where required
+
+### Database & Infrastructure
+
+- [x] MongoDB Atlas provisioned
+- [x] MongoDB connection configured
+- [x] Redis provisioned
+- [x] Redis connection configured
+- [x] Production services connected
+
+### Verification
+
+- [x] Frontend URL verified
+- [x] Backend URL verified
+- [x] API communication verified
+- [x] Authentication verified
+- [x] CRUD operations verified
+- [x] Real-time Socket.IO communication verified
+
+---
+
+## 6. Final Live Application Links
+
+### 🚀 TaskFlow Frontend
+
+**https://taskflow-frontend-blond.vercel.app/**
+
+### ⚙️ TaskFlow Backend API
+
+**https://taskflow-odak.onrender.com/**
+
+### 📦 GitHub Repository
+
+**https://github.com/joshipriyanshu125/ICP-2AA73905-2026-REPO.git**
+
+---
+
+## 7. Deployment Architecture — Final
+
+```text
+                         CLIENT / USER
+                              |
+                              v
+                 +--------------------------+
+                 |        VERCEL            |
+                 |   React + Vite Frontend  |
+                 |                          |
+                 | taskflow-frontend-       |
+                 | blond.vercel.app         |
+                 +------------+-------------+
+                              |
+                     HTTPS / WSS
+                              |
+                              v
+                 +--------------------------+
+                 |         RENDER            |
+                 |    Node.js + Express      |
+                 |       + Socket.IO         |
+                 |                          |
+                 | taskflow-odak.onrender.com|
+                 +------+-------------+-----+
+                        |             |
+                        |             |
+                        v             v
+              +-------------+   +-------------+
+              |  MongoDB    |   |    Redis    |
+              |    Atlas    |   | Cloud/      |
+              |             |   | Upstash     |
+              +-------------+   +-------------+
+```
+
+---
+
+## 8. Client Access
+
+The client only needs to open the following URL to use the deployed TaskFlow application:
+
+### 👉 https://taskflow-frontend-blond.vercel.app/
+
+The backend is deployed separately and is used by the frontend for API requests, authentication, database operations, and real-time Socket.IO communication.
+
+**TaskFlow is now available as a live full-stack application.**

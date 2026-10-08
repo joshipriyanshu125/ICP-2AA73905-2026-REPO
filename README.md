@@ -14,6 +14,7 @@
 | [**Week 1**](https://github.com/joshipriyanshu125/ICP-2AA73905-2026-REPO/blob/main/Week1/README.md) | Environment Setup & Project Selection | Git workflows, environment configuration, project selection matrix, command references, and documentation. |
 | [**Week 2**](https://github.com/joshipriyanshu125/ICP-2AA73905-2026-REPO/blob/main/Week2/README.md) | Core Engineering & Architecture | Implementation phase breakdown, research methodology, core MERN functional backend architecture, and TaskFlow codebase. |
 | [**Week 3**](https://github.com/joshipriyanshu125/ICP-2AA73905-2026-REPO/blob/main/Week3/README.md) | Project 1 Completion & Deployment | **TaskFlow Full Completion**: Polished UI/UX (List & Calendar Views), Status Metric Cards, Redis Pub/Sub + Socket.IO real-time synchronization, 14/14 test pass suite, and production deployment guide. |
+| [**Week 4**](https://github.com/joshipriyanshu125/ICP-2AA73905-2026-REPO/blob/main/Week4/README.md) | Project 2 Start — Weather Dashboard | **Weather Dashboard (MERN)**: OpenWeatherMap API integration, current weather card, 5-day forecast grid, geolocation search, search history & favorites persisted in MongoDB, server-side API proxy, and deployment guide. |
 
 ---
 
@@ -34,3 +35,19 @@
 - [Week 3 Completion Report](https://github.com/joshipriyanshu125/ICP-2AA73905-2026-REPO/blob/main/Week3/project-1-completion-report.md)
 - [Production Deployment Guide](https://github.com/joshipriyanshu125/ICP-2AA73905-2026-REPO/blob/main/Week3/deployment-guide.md)
 - [Full Technical Documentation](https://github.com/joshipriyanshu125/ICP-2AA73905-2026-REPO/blob/main/Week3/documentation.md)
+
+---
+
+## 🌤️ Project 2: Weather Dashboard Application (Week 4 — In Progress)
+
+- **Frontend:** React 18, Vite 6, vanilla CSS design tokens, Fetch API client.
+- **Backend:** Node.js (ES Modules), Express, Mongoose — proxies OpenWeatherMap so the API key stays server-side.
+- **Database:** MongoDB (`weather_dashboard`) — search history + favorite cities.
+- **External API:** OpenWeatherMap (current weather + 5-day / 3-hour forecast).
+- **Data Flow:** `React UI → /api/weather/* → weatherService → OpenWeatherMap → normalized view model → MongoDB history`.
+
+### Quick Navigation
+
+- [Week 4 README (Getting Started)](https://github.com/joshipriyanshu125/ICP-2AA73905-2026-REPO/blob/main/Week4/README.md)
+- [Week 4 Full Technical Documentation](https://github.com/joshipriyanshu125/ICP-2AA73905-2026-REPO/blob/main/Week4/documentation.md)
+- [Week 4 Deployment Guide](https://github.com/joshipriyanshu125/ICP-2AA73905-2026-REPO/blob/main/Week4/deployment-guide.md)

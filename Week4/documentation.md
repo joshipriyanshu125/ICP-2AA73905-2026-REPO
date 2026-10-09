@@ -187,6 +187,13 @@ Week4/Weather Application/frontend/
         └── ThemeToggle.jsx        # Sun/moon switch
 ```
 
+### Layout & Type Scale (Week 4 revision)
+
+- **Full-width stacked layout** — no dead columns: conditions row (hero + 2 × 3 stat tiles) → full-width hourly strip → two side-by-side chart cards → full-width forecast list.
+- **Root font-size `17px`** with rem-based sizing everywhere, so the whole UI scales together (hero temperature `clamp(4.4rem, 9vw, 6.4rem)`, card titles `1.15rem`, stat values `1.65rem`, search input `1.08rem`).
+- **Container `max-width: 1440px`** — sized for large desktop screens.
+- **Breakpoints:** ≤1080px conditions row stacks (tiles → 3-across) · ≤980px forecast rows compact (no range bar) · ≤900px charts stack · ≤640px mobile adjustments.
+
 ### Three-Tier Separation (carried forward from Week 2)
 ```
 ┌──────────────────────────────────────────────────────────────┐

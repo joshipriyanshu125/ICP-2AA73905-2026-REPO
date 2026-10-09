@@ -20,15 +20,17 @@ The Weather Dashboard Application provides users with quick access to real-time 
 
 | Target Task | Status | Implementation Details |
 | :--- | :---: | :--- |
-| **OpenWeatherMap API Integration** | ⚡ In Progress | Fetch current weather and 5-day forecast data |
-| **Geolocation API** | ⚡ In Progress | Integrate Browser Geolocation API for automatic location-based weather |
-| **Current Weather Card** | ⚡ In Progress | Display temperature, humidity, wind speed, and condition icons |
-| **5-Day Forecast Grid** | ⚡ In Progress | Show daily forecast cards with high/low temperatures |
-| **City Search Form** | ⚡ In Progress | Allow users to search for any city worldwide |
-| **Error Handling & Resilience** | ⚡ In Progress | Handle 404 city errors, invalid API keys, network failures |
-| **Data Visualization Charts** | ⚡ Planned | Dynamic temperature trend chart using Chart.js |
-| **Production Deployment** | ⚡ Planned | Deploy to Vercel with custom domain |
-| **Full Documentation** | ⚡ Planned | Comprehensive technical documentation and deployment guide |
+| **OpenWeatherMap API Integration** | ✅ Complete | Server-side proxy for current weather + forecast; API key never reaches the browser |
+| **City Search with Geocoding** | ✅ Complete | Search-as-you-type suggestions via OWM Geocoding API (debounced, keyboard-navigable) |
+| **Current Conditions Card** | ✅ Complete | Large display temperature, feels-like, humidity, wind, pressure, visibility, sunrise/sunset |
+| **Hourly Forecast Strip** | ✅ Complete | Next 24 hours (3-hour intervals) with icons and rain probability |
+| **Forecast Charts** | ✅ Complete | Temperature curve (area) + daily precipitation probability (bars) via recharts |
+| **Multi-Day Forecast** | ✅ Complete | Daily list — 5 days free plan, auto-upgrades to 7 days with One Call 3.0 |
+| **Browser Geolocation** | ✅ Complete | "Use my location" with permission states and graceful fallback to manual search |
+| **Saved Locations + Auth** | ✅ Complete | Email/password sign-in (JWT + bcrypt), favorites scoped per-user in MongoDB |
+| **Dark / Light Mode** | ✅ Complete | Deep-sky dark theme with condition-aware accents + minimalistic light theme |
+| **Head Metadata** | ✅ Complete | Per-route title/description/og tags (dashboard + auth) |
+| **Documentation & Deployment** | ✅ Complete | Full technical docs, deployment guide, 14/14 automated tests passing |
 
 ---
 
@@ -42,36 +44,41 @@ Week4/
 ├── .gitignore                # Git ignore rules
 └── Weather Application/      # Project 2 root (mirrors Week2/Task Management)
     ├── backend/              # MERN Backend Implementation
-    │   ├── package.json      # Dependencies and execution scripts
-    │   ├── .env              # Environment variables (PORT, MONGODB_URI, WEATHER_API_KEY)
+    │   ├── package.json      # express, mongoose, zod, bcryptjs, jsonwebtoken
+    │   ├── .env / .env.example  # PORT, MONGODB_URI, WEATHER_API_KEY, JWT_SECRET
     │   ├── README.md         # Backend API reference
     │   ├── src/
-    │   │   ├── server.js             # Application entry point
+    │   │   ├── server.js             # Entry point — mounts /api/auth + /api/weather
     │   │   ├── config/db.js          # Mongoose connection
-    │   │   ├── models/               # SearchHistory.js, FavoriteCity.js
-    │   │   ├── routes/weather.js     # REST API routes
-    │   │   ├── controllers/weatherController.js  # Request handlers
-    │   │   ├── services/weatherService.js        # OpenWeatherMap API client
-    │   │   └── middleware/           # errorHandler.js, rateLimiter.js
-    │   └── tests/                    # Integration test suite (6/6 passing)
+    │   │   ├── models/               # User, SearchHistory, FavoriteCity
+    │   │   ├── routes/               # auth.js, weather.js
+    │   │   ├── controllers/          # authController, weatherController
+    │   │   ├── services/weatherService.js  # OWM client: weather, forecast, geocoding, One Call
+    │   │   └── middleware/           # auth (JWT), validate (zod), schemas, errorHandler, rateLimiter
+    │   └── tests/api.test.js         # 14 automated tests (node:test)
     └── frontend/             # React + Vite Frontend
-        ├── package.json      # Frontend dependencies
+        ├── package.json      # react, react-router-dom, recharts
         ├── vite.config.js    # Vite build config + /api dev proxy
-        ├── index.html        # HTML template
+        ├── index.html        # HTML template + og/meta tags
         ├── README.md         # Frontend component map
         ├── public/favicon.svg
         └── src/
-            ├── main.jsx      # React root entry point
-            ├── App.jsx       # Root component: state & orchestration
-            ├── api.js        # Centralized API client
-            ├── index.css     # Global styles with design tokens
-            ├── hooks/useGeolocation.js  # Geolocation + unit helpers
+            ├── main.jsx              # Providers: Theme → Auth → Router
+            ├── App.jsx               # Routes: / (dashboard), /auth
+            ├── api.js                # Centralized API client (auto JWT header)
+            ├── index.css             # Design system: dark (deep-sky) + light (minimal)
+            ├── context/              # ThemeContext, AuthContext
+            ├── hooks/useGeolocation.js  # Geolocation + formatting helpers
+            ├── pages/                # Dashboard.jsx, AuthPage.jsx
             └── components/
-                ├── CurrentWeatherCard.jsx   # Current weather display
-                ├── SearchForm.jsx           # City search + history chips
-                ├── FiveDayForecast.jsx      # 5-day forecast grid
-                ├── GeolocationBadge.jsx     # Location badge
-                └── FavoritesBar.jsx         # Favorite cities bar
+                ├── SearchForm.jsx         # Geocoding suggestions + history chips
+                ├── CurrentWeatherCard.jsx # Hero: big temp, stats, sunrise/sunset, ★
+                ├── HourlyStrip.jsx        # Next-24h horizontal strip
+                ├── ForecastCharts.jsx     # recharts temperature + precipitation
+                ├── ForecastList.jsx       # Multi-day forecast rows
+                ├── FavoritesBar.jsx       # Saved locations (auth-aware)
+                ├── GeolocationBadge.jsx   # Location button + permission states
+                └── ThemeToggle.jsx        # Sun/moon dark-light switch
 ```
 
 ---
@@ -151,9 +158,11 @@ cp .env.example .env
 
 # Your .env should contain:
 # PORT=5000
-# MONGODB_URI=mongodb://127.0.0.1:27017/weather_dashboard
+# MONGODB_URI=mongodb+srv://... or mongodb://127.0.0.1:27017/weather_dashboard
 # WEATHER_API_KEY=your_openweathermap_api_key
 # CLIENT_ORIGIN=http://localhost:5173
+# JWT_SECRET=a_long_random_string_for_auth_tokens
+# JWT_EXPIRES_IN=7d
 
 # Launch development server
 npm run dev
@@ -195,11 +204,14 @@ cd "Weather Application/frontend" && npm run dev
 
 | Layer | Technologies |
 | :--- | :--- |
-| **Frontend** | React 18, Vite 6, Fetch API, CSS Modules / Design Tokens, Lucide Icons |
-| **Backend** | Node.js (ES Modules), Express 5, Mongoose ODM |
-| **Database** | MongoDB (Mongoose ODM) - stores city search history, user preferences |
-| **API** | OpenWeatherMap API (Current Weather, 5-Day Forecast) |
-| **Build Tool** | Vite 6 for lightning-fast frontend development |
+| **Frontend** | React 18, React Router 6, Vite 6, recharts (code-split), vanilla CSS design system (CSS custom properties) |
+| **Backend** | Node.js (ES Modules), Express 4, Mongoose ODM, zod (validation), bcryptjs + jsonwebtoken (auth) |
+| **Database** | MongoDB (Atlas or local) — `users`, `searchhistories`, `favoritecities` collections |
+| **External APIs** | OpenWeatherMap — Current Weather, 5-day/3-hour Forecast, Geocoding, One Call 3.0 (optional) |
+| **Security** | JWT Bearer auth, bcrypt hashing, zod input validation, rate limiting (api/weather/auth tiers), server-side API key |
+| **UX / Theme** | Dark deep-sky theme with condition-aware accents, minimalistic light theme, localStorage persistence, per-route meta tags |
+| **Build Tool** | Vite 6 (main bundle ~60 kB gz, charts lazy-loaded) |
+| **Testing** | Node.js built-in test runner — 14 tests, 100% pass rate |
 | **Environment** | dotenv for secure environment variable management |
 
 ---

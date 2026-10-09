@@ -14,7 +14,7 @@
 | [**Week 1**](https://github.com/joshipriyanshu125/ICP-2AA73905-2026-REPO/blob/main/Week1/README.md) | Environment Setup & Project Selection | Git workflows, environment configuration, project selection matrix, command references, and documentation. |
 | [**Week 2**](https://github.com/joshipriyanshu125/ICP-2AA73905-2026-REPO/blob/main/Week2/README.md) | Core Engineering & Architecture | Implementation phase breakdown, research methodology, core MERN functional backend architecture, and TaskFlow codebase. |
 | [**Week 3**](https://github.com/joshipriyanshu125/ICP-2AA73905-2026-REPO/blob/main/Week3/README.md) | Project 1 Completion & Deployment | **TaskFlow Full Completion**: Polished UI/UX (List & Calendar Views), Status Metric Cards, Redis Pub/Sub + Socket.IO real-time synchronization, 14/14 test pass suite, and production deployment guide. |
-| [**Week 4**](https://github.com/joshipriyanshu125/ICP-2AA73905-2026-REPO/blob/main/Week4/README.md) | Project 2 Start — Weather Dashboard | **Weather Dashboard (MERN)**: OpenWeatherMap API integration, current weather card, 5-day forecast grid, geolocation search, search history & favorites persisted in MongoDB, server-side API proxy, and deployment guide. |
+| [**Week 4**](https://github.com/joshipriyanshu125/ICP-2AA73905-2026-REPO/blob/main/Week4/README.md) | Project 2 Start — Weather Dashboard | **Weather Dashboard (MERN)**: OpenWeatherMap API integration (current, forecast, geocoding), current conditions card, hourly strip, recharts charts, multi-day forecast, geolocation search, JWT auth with per-user saved locations, dark/light themes, search history in MongoDB, server-side API proxy, and deployment guide. |
 
 ---
 
@@ -40,11 +40,13 @@
 
 ## 🌤️ Project 2: Weather Dashboard Application (Week 4 — In Progress)
 
-- **Frontend:** React 18, Vite 6, vanilla CSS design tokens, Fetch API client.
-- **Backend:** Node.js (ES Modules), Express, Mongoose — proxies OpenWeatherMap so the API key stays server-side.
-- **Database:** MongoDB (`weather_dashboard`) — search history + favorite cities.
-- **External API:** OpenWeatherMap (current weather + 5-day / 3-hour forecast).
-- **Data Flow:** `React UI → /api/weather/* → weatherService → OpenWeatherMap → normalized view model → MongoDB history`.
+- **Frontend:** React 18, Vite 6, React Router, recharts (code-split), vanilla CSS design system — dark deep-sky theme (condition-aware accents) + minimalistic light theme.
+- **Backend:** Node.js (ES Modules), Express, Mongoose, zod validation, bcrypt + JWT — proxies OpenWeatherMap so the API key stays server-side.
+- **Database:** MongoDB (`weather_dashboard`) — `users`, search history, per-user favorite cities.
+- **External API:** OpenWeatherMap (current weather, 5-day/3-hour forecast, geocoding; optional One Call 3.0 for 7-day).
+- **Data Flow:** `React UI → /api/weather/* → weatherService → OpenWeatherMap → normalized view model → MongoDB`.
+- **Auth Flow:** `Sign up (/auth) → bcrypt hash → JWT → Bearer header → favorites scoped by user id`.
+- **Tests:** 14/14 passing (`backend: npm test`).
 
 ### Quick Navigation
 

@@ -44,6 +44,8 @@
 | `MONGODB_URI` | Yes | `mongodb+srv://user:pass@cluster0.mongodb.net/weather_dashboard` | Database connection |
 | `WEATHER_API_KEY` | Yes | `a1b2c3d4e5f6...` | OpenWeatherMap key (server-side only) |
 | `CLIENT_ORIGIN` | Yes | `https://weatherdash.vercel.app` | Allowed CORS origin |
+| `JWT_SECRET` | Yes | `a-very-long-random-hex-string` | JWT signing key for saved-location auth |
+| `JWT_EXPIRES_IN` | No | `7d` | Access token lifespan |
 | `OPENWEATHER_BASE_URL` | No | `https://api.openweathermap.org/data/2.5` | Override for testing |
 | `CACHE_TTL_SECONDS` | No | `600` | In-memory cache TTL for weather responses |
 

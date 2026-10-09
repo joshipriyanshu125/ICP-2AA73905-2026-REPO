@@ -2,7 +2,7 @@
 
 **Internship Portal ID:** `ICP-2AA73905-2026`
 **Repository:** [https://github.com/joshipriyanshu125/ICP-2AA73905-2026-REPO.git](https://github.com/joshipriyanshu125/ICP-2AA73905-2026-REPO.git)
-**Project:** Weather Dashboard Application (Project 2 — Project 6 in project bank)
+**Project:** Weather Dashboard Application (Project 2 — "Project 6" in the project bank)
 **Internship Week:** Week 4
 **Stack:** MERN (MongoDB, Express, React, Node.js) + OpenWeatherMap API
 
@@ -18,24 +18,26 @@
 6. [Database Design (MongoDB)](#6-database-design-mongodb)
 7. [OpenWeatherMap API Integration](#7-openweathermap-api-integration)
 8. [REST API Endpoints](#8-rest-api-endpoints)
-9. [Security, Middleware & Error Handling](#9-security-middleware--error-handling)
-10. [Local Environment Setup & Execution](#10-local-environment-setup--execution)
-11. [Week 4 → Week 5 → Week 6 Roadmap](#11-week-4--week-5--week-6-roadmap)
-12. [Key Engineering Learnings](#12-key-engineering-learnings)
-13. [Deliverables & Verification Summary](#13-deliverables--verification-summary)
+9. [Security, Auth, Middleware & Error Handling](#9-security-auth-middleware--error-handling)
+10. [Theme System (Dark / Light)](#10-theme-system-dark--light)
+11. [Local Environment Setup & Execution](#11-local-environment-setup--execution)
+12. [Week 4 → Week 5 → Week 6 Roadmap](#12-week-4--week-5--week-6-roadmap)
+13. [Key Engineering Learnings](#13-key-engineering-learnings)
+14. [Deliverables & Verification Summary](#14-deliverables--verification-summary)
 
 ---
 
 ## 1. Executive Summary & Week 4 Objectives
 
-Week 4 marks the beginning of **Project 2: Weather Dashboard Application**. Where Project 1 (TaskFlow) focused on internal state management, CRUD operations, and real-time collaboration, Project 2 focuses on **external REST API integration**, **asynchronous data fetching**, and **data visualization** — the complementary skill set identified in Week 1's project selection.
+Week 4 begins **Project 2: Weather Dashboard Application**. Where Project 1 (TaskFlow) focused on internal state management, CRUD operations, and real-time collaboration, Project 2 focuses on **external REST API integration**, **asynchronous data visualization**, and **account-scoped persistence** — the complementary skill set identified in Week 1's project selection.
 
-### Key Milestones for Week 4:
-1. **Backend Scaffolding:** Express 5 + Mongoose backend with a dedicated `weatherService` that proxies OpenWeatherMap requests (keeps the API key server-side).
-2. **OpenWeatherMap Integration:** Fetch current weather and 5-day / 3-hour forecast data, transform raw payloads into clean view models.
-3. **React Frontend:** Vite 6 + React 18 SPA with city search, current weather card, and forecast grid.
-4. **Persistence:** MongoDB collections storing recent search history and favorite cities.
-5. **Resilience:** Centralized error handling for 404 (city not found), 401 (invalid API key), rate limits (429), and network failures.
+### Key Milestones Delivered:
+1. **Backend Scaffolding:** Express + Mongoose backend with a dedicated `weatherService` that proxies all OpenWeatherMap calls (API key stays server-side).
+2. **OpenWeatherMap Integration:** Current weather, 5-day/3-hour forecast, geocoding search — all normalized into stable view models.
+3. **Data Visualization:** recharts temperature curve + precipitation probability charts, plus a next-24-hour forecast strip.
+4. **Authentication:** Email/password accounts (bcrypt + JWT) with per-user saved locations (row-level scoping in MongoDB).
+5. **Design System:** Deep-sky dark theme with **condition-aware accent colors**, a minimalistic light theme, and per-route head metadata.
+6. **Resilience:** Centralized error handling for 404 (city not found), 401 (key/auth), 429 (rate limits), timeouts, and offline states — all verified by a 14-test automated suite.
 
 ---
 
@@ -44,61 +46,66 @@ Week 4 marks the beginning of **Project 2: Weather Dashboard Application**. Wher
 ### Real-World Problem
 Users need quick access to real-time weather forecasts and visual climate data for daily planning.
 
-### Week 4 Feature Scope (MVP)
+### Implemented Feature Scope
 
 | Feature | Description | Status |
 | :--- | :--- | :--- |
-| **City Search** | Search any city by name with autocomplete-friendly input | ✅ Implemented |
-| **Current Weather Card** | Temperature, feels-like, humidity, wind speed, condition, icon | ✅ Implemented |
-| **5-Day Forecast Grid** | Daily high/low derived from 3-hour interval forecast payload | ✅ Implemented |
-| **Geolocation** | Browser Geolocation API → auto-fetch weather for current position | ✅ Implemented |
-| **Search History** | Last 10 searched cities persisted in MongoDB and shown as chips | ✅ Implemented |
-| **Favorite Cities** | Star a city to save it to MongoDB for quick access | ✅ Implemented |
-| **Unit Toggle** | Celsius ↔ Fahrenheit toggle applied client-side | ✅ Implemented |
-| **Error States** | Friendly messages for not-found cities, offline mode, bad API key | ✅ Implemented |
+| **City Search + Geocoding** | Search-as-you-type suggestions (debounced 300 ms, keyboard-navigable) via OWM Geocoding API | ✅ |
+| **Current Conditions Card** | Large display temperature, feels-like, humidity, wind, pressure, visibility, sunrise/sunset | ✅ |
+| **Hourly Forecast Strip** | Next 24 hours in 3-hour intervals with icons + rain probability | ✅ |
+| **Forecast Charts** | recharts temperature area curve and daily precipitation bar chart (code-split chunk) | ✅ |
+| **Multi-Day Forecast** | Daily rows — 5 days on the free plan; auto-upgrades to 7 days if One Call 3.0 is subscribed | ✅ |
+| **Browser Geolocation** | "Use my location" with permission states (`idle/locating/granted/denied/unavailable`) | ✅ |
+| **Search History** | Last 10 searched cities persisted in MongoDB, shown as chips with last temperature | ✅ |
+| **Saved Locations (Favorites)** | Star cities — requires sign-in; rows scoped per user (`user` + compound unique index) | ✅ |
+| **Authentication** | Sign-up / sign-in (`/auth` route), JWT Bearer tokens, bcrypt hashing, session restore | ✅ |
+| **Unit Toggle** | °C ↔ °F applied client-side, persisted in `localStorage` | ✅ |
+| **Dark / Light Mode** | Deep-sky dark (condition-aware accents) + minimalistic light theme, system-preference default | ✅ |
+| **Head Metadata** | Per-route `title`, `description`, `og:title` updated dynamically (dashboard + auth) | ✅ |
+| **Error States** | Friendly messages for not-found cities, invalid key, rate limits, offline, auth errors | ✅ |
 
 ### Deferred to Week 5 / Week 6
-- Temperature trend charts (Chart.js / Recharts)
-- Air pollution index
-- Hourly scroll timeline
-- PWA offline caching
+- Air pollution index, PWA offline caching, animated weather backgrounds
+- Production deployment (Vercel + Render) — guide already written in `deployment-guide.md`
 
 ---
 
 ## 3. System Architecture
 
 ```text
-┌──────────────────────────────────────────────────────────┐
-│                React SPA (Vite 6 — Port 5173)            │
-│  SearchForm → CurrentWeatherCard → FiveDayForecast       │
-│  GeolocationBadge → HistoryChips → ForecastChart         │
-└───────────────────────────┬──────────────────────────────┘
-                            │ HTTP / JSON  (axios/fetch)
-                            │ GET /api/weather/current?city=Pune
-┌───────────────────────────▼──────────────────────────────┐
-│           Express 5 API (Node.js — Port 5000)            │
-│                                                          │
-│  routes/weather.js ──► controllers/weatherController.js  │
-│                              │                           │
-│                              ▼                           │
-│                    services/weatherService.js            │
-│                              │                           │
-│              ┌───────────────┴────────────────┐          │
-│              ▼                                ▼          │
-│   OpenWeatherMap REST API            models/ (Mongoose)  │
-│   api.openweathermap.org             SearchHistory       │
-│   (API key stays on server)          FavoriteCity        │
-│                                              │           │
-│                                              ▼           │
-│                                         MongoDB          │
-└──────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────┐
+│          React 18 SPA (Vite 6 — Port 5173)                     │
+│  Routes:  /  (Dashboard)              /auth  (Sign in / up)    │
+│                                                                │
+│  SearchForm → CurrentWeatherCard → HourlyStrip                 │
+│  ForecastCharts (lazy) → ForecastList → FavoritesBar           │
+│  ThemeContext (dark/light)   AuthContext (JWT session)         │
+└──────────────────────────┬─────────────────────────────────────┘
+                           │ HTTP / JSON  (fetch + Bearer token)
+                           │ GET /api/weather/current?city=Pune
+┌──────────────────────────▼─────────────────────────────────────┐
+│              Express API (Node.js — Port 5000)                 │
+│                                                                │
+│  routes/auth.js ──► authController ──► User model (bcrypt)     │
+│  routes/weather.js ─► weatherController                        │
+│        │  middleware: rateLimiter → zod validate → requireAuth │
+│        ▼                                                       │
+│  services/weatherService.js  (single OWM gateway)              │
+│        │                    │                     │            │
+│        ▼                    ▼                     ▼            │
+│  /data/2.5/weather   /data/2.5/forecast   /geo/1.0/direct      │
+│  (+ optional /data/3.0/onecall for 7-day)                      │
+│                                                                │
+│  models: User · SearchHistory · FavoriteCity ──► MongoDB       │
+└────────────────────────────────────────────────────────────────┘
 ```
 
-### Why proxy through our own backend?
-1. **API Key Security:** The OpenWeatherMap key never ships to the browser bundle.
-2. **Rate Limit Control:** Server-side caching and rate limiting protect the free-tier quota (1,000 calls/day).
-3. **Data Normalization:** Raw payloads are transformed once into a stable view model, decoupling the UI from third-party schema changes.
-4. **Persistence:** Search history and favorites live in MongoDB, not just `localStorage`.
+### Design decisions
+1. **API Key Security:** `WEATHER_API_KEY` lives only in `backend/.env`; the frontend calls *our* API exclusively (`vite.config.js` proxies `/api` in dev).
+2. **Single External Gateway:** every OpenWeatherMap call funnels through `weatherService.js` — one place for caching (TTL map), error mapping, and payload normalization.
+3. **Rate Limit Control:** three limiter tiers (auth 20/15min, weather 30/min, general 60/min) protect the free-tier quota (1,000 calls/day).
+4. **Persistence:** history is public (per-browser); favorites are authenticated and **row-scoped by user id** — the MERN equivalent of the plan's Supabase row-level security.
+5. **Resilient 7-day:** the service silently upgrades to One Call 3.0 when the key has access, otherwise serves the free 5-day data (`source: 'onecall7' | 'forecast5'`).
 
 ---
 
@@ -107,40 +114,44 @@ Users need quick access to real-time weather forecasts and visual climate data f
 ### Directory Structure
 ```
 Week4/Weather Application/backend/
-├── .env                       # PORT, MONGODB_URI, WEATHER_API_KEY, CLIENT_ORIGIN
-├── package.json               # ES Modules, Express 5, Mongoose
-├── README.md                  # Backend API reference
+├── .env / .env.example      # PORT, MONGODB_URI, WEATHER_API_KEY, JWT_SECRET, CLIENT_ORIGIN
+├── package.json             # ES Modules; express, mongoose, zod, bcryptjs, jsonwebtoken
+├── README.md                # Backend API reference
 ├── src/
-│   ├── server.js              # Entry point: Express bootstrap + Mongo connection
-│   ├── config/
-│   │   └── db.js              # Mongoose connection helper
+│   ├── server.js            # Entry: CORS, JSON, /health, mounts /api/auth + /api/weather
+│   ├── config/db.js         # Mongoose connection (non-fatal in dev, fatal in production)
 │   ├── controllers/
-│   │   └── weatherController.js  # Request handlers (current, forecast, history, favorites)
+│   │   ├── authController.js        # signup / signin / me
+│   │   └── weatherController.js     # current, forecast, search, history, favorites
 │   ├── middleware/
-│   │   ├── errorHandler.js    # Centralized 4xx/5xx error responder
-│   │   └── rateLimiter.js     # express-rate-limit on /api/weather
+│   │   ├── auth.js          # signToken / verifyToken / requireAuth (JWT Bearer)
+│   │   ├── validate.js      # validateBody / validateQuery (zod safeParse → friendly 400)
+│   │   ├── schemas.js       # zod schemas: weatherQuery, searchQuery, signup, signin, favorite
+│   │   ├── errorHandler.js  # centralized HTTP errors + 404 + httpError() helper
+│   │   └── rateLimiter.js   # apiLimiter / weatherLimiter / authLimiter
 │   ├── models/
-│   │   ├── SearchHistory.js   # Recent city searches (city, country, searchedAt, count)
-│   │   └── FavoriteCity.js    # Starred cities (city, country, coords, addedAt)
+│   │   ├── User.js          # name, email (unique), passwordHash, timestamps
+│   │   ├── SearchHistory.js # city, country, coords, count, lastIcon/lastTemp
+│   │   └── FavoriteCity.js  # user ref + city + coords; unique {user, city}
 │   ├── routes/
-│   │   └── weather.js         # /api/weather/* route declarations
+│   │   ├── auth.js          # POST /signup, POST /signin, GET /me
+│   │   └── weather.js       # current, forecast, search, history, favorites
 │   └── services/
-│       └── weatherService.js  # OpenWeatherMap fetch + payload normalization
-└── tests/
-    └── api.test.js            # Node.js built-in test runner suite
+│       └── weatherService.js  # OWM gateway: fetch, normalize, cache, geocode, One Call
+└── tests/api.test.js        # 14 tests (node:test) — no DB or API key required
 ```
 
-### Backend Responsibility Matrix
+### Module Responsibilities
 
 | Module | File | Responsibility |
 | :--- | :--- | :--- |
-| **Server** | `src/server.js` | Express bootstrap, JSON body parsing, CORS, route mounting, health check, graceful shutdown |
-| **DB** | `src/config/db.js` | Mongoose connect/disconnect with retry-aware error reporting |
-| **Weather Service** | `src/services/weatherService.js` | Calls OpenWeatherMap, maps payload → view model, throws typed errors |
-| **Controller** | `src/controllers/weatherController.js` | Validates query params, invokes service, writes history, returns JSON |
-| **Routes** | `src/routes/weather.js` | URL → controller mapping with rate limiter |
-| **Models** | `src/models/*.js` | `SearchHistory`, `FavoriteCity` schemas with indexes |
-| **Errors** | `src/middleware/errorHandler.js` | Normalizes thrown `Error.status` codes to HTTP responses |
+| **Server** | `src/server.js` | Express bootstrap, CORS, route mounting, health check with service statuses |
+| **Auth** | `authController` + `middleware/auth.js` | Register/login, bcrypt (10 rounds), JWT `7d` expiry, `requireAuth` guard |
+| **Weather Service** | `services/weatherService.js` | OWM calls, payload → view models, TTL cache, geocoding, 7-day upgrade |
+| **Weather Controller** | `weatherController.js` | Validates targets, invokes service, records history, user-scoped favorites |
+| **Validation** | `middleware/validate.js` + `schemas.js` | Zod schemas → friendly 400 messages before controllers run |
+| **Errors** | `middleware/errorHandler.js` | Maps thrown `err.status` codes to `{ ok:false, error }` responses |
+| **Rate Limits** | `middleware/rateLimiter.js` | Per-IP tiers: weather (30/min), auth (20/15min), general (60/min) |
 
 ---
 
@@ -149,137 +160,127 @@ Week4/Weather Application/backend/
 ### Directory Structure
 ```
 Week4/Weather Application/frontend/
-├── package.json               # React 18, Vite 6, recharts (Week 6)
-├── vite.config.js             # Dev proxy: /api → http://localhost:5000
-├── index.html                 # SPA entry template
+├── package.json             # react 18, react-router-dom 6, recharts 2
+├── vite.config.js           # dev proxy: /api → http://localhost:5000
+├── index.html               # SPA entry + static og/meta tags
 └── src/
-    ├── main.jsx               # React root render
-    ├── App.jsx                # Root shell: state, fetch orchestration, layout
-    ├── api.js                 # Centralized fetch client (get/post/delete helpers)
-    ├── index.css              # Design tokens + component styles
-    ├── hooks/
-    │   └── useGeolocation.js  # Geolocation permission + coordinates hook
+    ├── main.jsx             # Providers: ThemeProvider → AuthProvider → BrowserRouter
+    ├── App.jsx              # Routes: "/" Dashboard, "/auth" AuthPage, * → /
+    ├── api.js               # Data Access Layer: fetch wrapper + auto JWT header
+    ├── index.css            # Full design system (tokens, components, responsive)
+    ├── context/
+    │   ├── ThemeContext.jsx # dark/light state → document.documentElement.dataset.theme
+    │   └── AuthContext.jsx  # user/session, signup/signin/logout, token restore
+    ├── hooks/useGeolocation.js  # Geolocation hook + °C/°F, date, icon, condition helpers
+    ├── pages/
+    │   ├── Dashboard.jsx    # Orchestration: fetch flows, favorites, meta, condition accents
+    │   └── AuthPage.jsx     # Sign in / sign up form with inline errors
     └── components/
-        ├── SearchForm.jsx         # City input + submit + history chips
-        ├── CurrentWeatherCard.jsx # Hero card with temp, humidity, wind
-        ├── FiveDayForecast.jsx    # 5-column forecast grid
-        ├── GeolocationBadge.jsx   # "Use my location" button + status
-        └── FavoritesBar.jsx       # Starred cities quick-switcher
+        ├── SearchForm.jsx         # Debounced geocoding dropdown + history chips (+ geolocation slot)
+        ├── CurrentWeatherCard.jsx # Full-bleed hero: display temp, feels + H/L, big icon, ★ toggle
+        ├── StatTiles.jsx          # 2 × 3 stat tiles: humidity, wind, pressure, visibility, sunrise, sunset
+        ├── HourlyStrip.jsx        # Next-24h horizontal scroll strip
+        ├── ForecastCharts.jsx     # recharts (lazy chunk): temperature + precipitation, side-by-side cards
+        ├── ForecastList.jsx       # Full-width rows with min — range bar — max
+        ├── FavoritesBar.jsx       # Saved locations (auth-aware sign-in prompt)
+        ├── GeolocationBadge.jsx   # "Use my location" button (inline in the search row)
+        └── ThemeToggle.jsx        # Sun/moon switch
 ```
 
 ### Three-Tier Separation (carried forward from Week 2)
 ```
-┌──────────────────────────────────────────────────────┐
-│ 1. Presentation Layer — components/*.jsx             │
-│    (markup, CSS, event listeners only)               │
-└───────────────────────┬──────────────────────────────┘
-                        │ dispatch user actions
-┌───────────────────────▼──────────────────────────────┐
-│ 2. State & Business Logic — App.jsx + hooks          │
-│    (unit conversion, forecast aggregation, loading)  │
-└───────────────────────┬──────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│ 1. Presentation — components/*.jsx  (markup + CSS only)      │
+└───────────────────────┬──────────────────────────────────────┘
+                        │ user actions (props callbacks)
+┌───────────────────────▼──────────────────────────────────────┐
+│ 2. State & Business Logic — pages/Dashboard.jsx + contexts   │
+│    (fetch orchestration, unit conversion, favorites, meta)   │
+└───────────────────────┬──────────────────────────────────────┘
                         │ network requests
-┌───────────────────────▼──────────────────────────────┐
-│ 3. Data Access Layer — api.js → our Express API      │
-│    (no third-party URLs from the client)             │
-└──────────────────────────────────────────────────────┘
+┌───────────────────────▼──────────────────────────────────────┐
+│ 3. Data Access — api.js → our Express API (never OWM direct) │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-### View Model Contract
-The backend normalizes every OpenWeatherMap payload into:
+### View Model Contract (backend → frontend)
 
 ```javascript
-/**
- * @typedef {Object} CurrentWeather
- * @property {string} city          - e.g. "Pune"
- * @property {string} country       - e.g. "IN"
- * @property {number} temperature   - °C (rounded)
- * @property {number} feelsLike     - °C (rounded)
- * @property {number} humidity      - percent
- * @property {number} windSpeed     - m/s
- * @property {number} visibility    - meters
- * @property {number} pressure      - hPa
- * @property {string} condition     - "Clouds"
- * @property {string} description   - "broken clouds"
- * @property {string} icon          - "04d"
- * @property {number} sunrise       - unix seconds
- * @property {number} sunset        - unix seconds
- * @property {number} dt            - observation time (unix)
- * @property {{lat:number, lon:number}} coords
- */
+/** CurrentWeather — GET /api/weather/current */
+{ city, country, temperature, feelsLike, humidity, pressure, windSpeed, windDeg,
+  visibility, condition, description, icon, clouds, sunrise, sunset, dt,
+  coords: { lat, lon } }
 
-/**
- * @typedef {Object} DailyForecast
- * @property {string} date          - "2026-10-09"
- * @property {number} tempMin       - °C
- * @property {number} tempMax       - °C
- * @property {string} condition
- * @property {string} icon
- * @property {number} humidity      - averaged
- */
+/** Forecast — GET /api/weather/forecast */
+{ city, country, coords,
+  source: 'forecast5' | 'onecall7',
+  hourly: [ { dt, temp, condition, icon, pop, humidity } ],   // next 24h, 3h steps
+  days:   [ { date, tempMin, tempMax, humidity, condition, icon, pop, ... } ] }
+
+/** Geocoding — GET /api/weather/search?q=… */
+[ { name, state, country, lat, lon } ]
 ```
-
-The 5-day forecast is derived by bucketing the 3-hour `list[]` entries by calendar date and taking the min/max temperature per bucket.
 
 ---
 
 ## 6. Database Design (MongoDB)
 
-**Database:** `weather_dashboard`
+**Database:** `weather_dashboard` (created lazily on first write)
 
 ### Collections
 
 | Collection | Purpose | Key Fields | Index |
 | :--- | :--- | :--- | :--- |
-| `searchhistories` | Last 10 searched cities with search counts | `city` (lowercased), `country`, `coords`, `count`, `searchedAt` | unique `{city:1}`, `{searchedAt:-1}` |
-| `favoritecities` | Starred cities for quick access | `city`, `country`, `coords`, `addedAt` | unique `{city:1}` |
+| `users` | Accounts for saved locations | `name`, `email` (unique, lowercase), `passwordHash`, timestamps | unique `{email:1}` |
+| `searchhistories` | Last 10 searched cities | `city` (lowercased), `country`, `coords`, `count`, `lastIcon`, `lastTemp` | unique `{city:1}`, `{updatedAt:-1}` |
+| `favoritecities` | Saved locations **per user** | `user` (ObjectId ref), `city`, `country`, `coords`, `label` | unique `{user:1, city:1}` |
 
 ### Entity Relationship
-```text
-(search history is per-browser/per-app, not per-user — kept simple for Week 4)
-
-searchhistories  ──(city key)──►  favoritecities
-      │                                  │
-      └────────── MongoDB ───────────────┘
 ```
+users ──1:N──► favoritecities        (row-level security: every query filters by user id)
+  │
+  └── (search history stays public / per-browser)
 
-> **Week 5 note:** A `User` collection with JWT auth will scope history and favorites per-account. Week 4 intentionally ships unauthenticated to focus on API integration first (core functionality before polish — same principle applied in Week 2).
+favoritecities: unique compound index { user, city }  ⇒ no duplicate saves per account
+searchhistories: trimmed to most recent 10 after each search
+```
 
 ---
 
 ## 7. OpenWeatherMap API Integration
 
-### Endpoints Used
+### Endpoints Consumed
 
 | Endpoint | Purpose | Example |
 | :--- | :--- | :--- |
-| `/data/2.5/weather` | Current conditions | `?q=Pune,IN&units=metric&appid=KEY` |
-| `/data/2.5/forecast` | 5-day / 3-hour forecast | `?lat=18.52&lon=73.85&units=metric&appid=KEY` |
-| `/data/2.5/weather` | Reverse lookup by coords | `?lat=18.52&lon=73.85&units=metric&appid=KEY` |
+| `/data/2.5/weather` | Current conditions | `?q=Pune&units=metric&appid=KEY` |
+| `/data/2.5/forecast` | 5-day / 3-hour forecast (hourly + daily source) | `?lat=…&lon=…&units=metric` |
+| `/geo/1.0/direct` | City geocoding (search suggestions) | `?q=Reykjavik&limit=5&appid=KEY` |
+| `/data/3.0/onecall` | *Optional* 7-day daily forecast | requires free One Call 3.0 subscription |
+
+> **Note:** geocoding lives under `api.openweathermap.org/geo/1.0` (there is no `geo.openweathermap.org` host). OWM's geocoder matches **complete words** — "Reykjavik" matches, "Reykjav" doesn't; the Search button still works with partial text because `/weather?q=` does its own fuzzy matching.
 
 ### Error Mapping (implemented in `weatherService.js`)
 
 | Upstream Status | Meaning | Client Response |
 | :---: | :--- | :--- |
-| `404` | City not found | `404 — City "xyz" not found. Check spelling.` |
-| `401` | Invalid API key | `401 — Weather service authentication failed.` |
-| `429` | Rate limit exceeded | `429 — Too many requests. Try again shortly.` |
+| `404` | City not found | `404 — City "xyz" not found. Check the spelling.` |
+| `401` | Invalid / unactivated API key | `401 — Weather service authentication failed (invalid or not-yet-activated API key).` |
+| `429` | Rate limit exceeded | `429 — Weather service rate limit exceeded. Try again shortly.` |
 | `5xx` | Upstream outage | `502 — Weather service temporarily unavailable.` |
-| network error | Offline / DNS failure | `503 — Could not reach weather service.` |
+| timeout (8s) | Slow network | `504 — Weather service timed out. Check your connection and retry.` |
+| DNS / offline | No connectivity | `503 — Could not reach the weather service. You appear to be offline.` |
 
 ### Data Flow (current weather)
 ```
-User types "Pune" → SearchForm onSubmit
-  → App.setState({ loading: true })
-  → api.get('/api/weather/current?city=Pune')
-  → weatherController.searchCurrent
-  → weatherService.fetchCurrentWeather('Pune')
-      → fetch openweathermap /weather?q=Pune&units=metric&appid=KEY
-      → normalize(payload) → CurrentWeather view model
-  → SearchHistory.upsert({ city: 'pune', $inc: { count: 1 } })
-  → res.json({ ok: true, data: CurrentWeather })
-  → App.setState({ weather, loading: false })
-  → CurrentWeatherCard + FiveDayForecast re-render
+User types "Pune" → SearchForm (300ms debounce → /api/weather/search for suggestions)
+  → submit → Dashboard.loadWeather({ city }) → setLoading(true)
+  → Promise.all([ api.currentWeather, api.forecast ])
+      → weatherController → weatherService (TTL cache → OpenWeatherMap)
+      → normalize → CurrentWeather + Forecast view models
+  → SearchHistory upsert (fire-and-forget, trimmed to 10)
+  → setWeather / setForecast → head metadata + condition accent updated
+  → CurrentWeatherCard · HourlyStrip · ForecastCharts · ForecastList re-render
 ```
 
 ---
@@ -288,44 +289,33 @@ User types "Pune" → SearchForm onSubmit
 
 Base URL: `http://localhost:5000`
 
+### Weather (public, rate-limited)
+
 | Method | Endpoint | Access | Description |
 | :--- | :--- | :--- | :--- |
-| `GET` | `/health` | Public | Server + DB + API-key status check |
-| `GET` | `/api/weather/current?city=Pune` | Public* | Current weather by city name |
-| `GET` | `/api/weather/current?lat=18.5&lon=73.8` | Public* | Current weather by coordinates (geolocation) |
-| `GET` | `/api/weather/forecast?city=Pune` | Public* | 5-day forecast (city variant) |
-| `GET` | `/api/weather/forecast?lat=18.5&lon=73.8` | Public* | 5-day forecast (coordinates variant) |
+| `GET` | `/health` | Public | Server + DB + API-key status |
+| `GET` | `/api/weather/current?city=Pune` | Public | Current weather by city (zod validated) |
+| `GET` | `/api/weather/current?lat=…&lon=…` | Public | Current weather by coordinates |
+| `GET` | `/api/weather/forecast?city=Pune` | Public | Hourly strip + multi-day forecast |
+| `GET` | `/api/weather/search?q=Reykjavik` | Public | Geocoding suggestions (limit 5) |
 | `GET` | `/api/weather/history` | Public | Last 10 searched cities |
 | `DELETE` | `/api/weather/history` | Public | Clear search history |
-| `GET` | `/api/weather/favorites` | Public | List favorite cities |
-| `POST` | `/api/weather/favorites` | Public | Add `{ city, country, coords }` |
-| `DELETE` | `/api/weather/favorites/:city` | Public | Remove a favorite |
 
-\* Public but rate-limited via `express-rate-limit`.
+### Favorites (**require `Authorization: Bearer <token>`**)
 
-### Sample Response — `GET /api/weather/current?city=Pune`
-```json
-{
-  "ok": true,
-  "data": {
-    "city": "Pune",
-    "country": "IN",
-    "temperature": 29,
-    "feelsLike": 31,
-    "humidity": 64,
-    "windSpeed": 3.6,
-    "visibility": 6000,
-    "pressure": 1008,
-    "condition": "Clouds",
-    "description": "broken clouds",
-    "icon": "04d",
-    "sunrise": 1791546120,
-    "sunset": 1791588900,
-    "dt": 1791566400,
-    "coords": { "lat": 18.52, "lon": 73.85 }
-  }
-}
-```
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/api/weather/favorites` | List *my* saved locations (user-scoped) |
+| `POST` | `/api/weather/favorites` | Save `{ city, country?, coords?, label? }` — 409 if duplicate |
+| `DELETE` | `/api/weather/favorites/:city` | Remove one of *my* favorites — 404 if not found |
+
+### Auth
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/api/auth/signup` | `{ name, email, password≥8 }` → `{ token, user }` |
+| `POST` | `/api/auth/signin` | `{ email, password }` → `{ token, user }` (401 on bad creds) |
+| `GET` | `/api/auth/me` | Current profile from Bearer token |
 
 ### Sample Response — `GET /api/weather/forecast?city=Pune`
 ```json
@@ -334,16 +324,12 @@ Base URL: `http://localhost:5000`
   "data": {
     "city": "Pune",
     "country": "IN",
+    "source": "forecast5",
+    "hourly": [
+      { "dt": 1791569200, "temp": 33, "condition": "Clear", "icon": "01d", "pop": 0, "humidity": 42 }
+    ],
     "days": [
-      {
-        "date": "2026-10-09",
-        "tempMin": 21,
-        "tempMax": 31,
-        "humidity": 60,
-        "condition": "Rain",
-        "icon": "10d",
-        "pop": 0.75
-      }
+      { "date": "2026-10-09", "tempMin": 21, "tempMax": 34, "humidity": 48, "condition": "Clear", "icon": "01d", "pop": 0 }
     ]
   }
 }
@@ -351,48 +337,78 @@ Base URL: `http://localhost:5000`
 
 ---
 
-## 9. Security, Middleware & Error Handling
+## 9. Security, Auth, Middleware & Error Handling
 
-### Middleware Pipeline
+### Request Pipeline
 ```mermaid
 sequenceDiagram
     autonumber
     Client->>Express: GET /api/weather/current?city=Pune
-    Express->>RateLimiter: Check IP request rate (60/min)
-    RateLimiter-->>Express: Pass
-    Express->>weatherController: validate city/lat/lon params
-    weatherController->>weatherService: fetchCurrentWeather(city)
-    weatherService->>OpenWeatherMap: HTTPS request (key server-side only)
-    OpenWeatherMap-->>weatherService: JSON payload
-    weatherService-->>weatherController: normalized view model
-    weatherController->>MongoDB: SearchHistory upsert (fire & forget)
-    weatherController-->>Client: HTTP 200 { ok, data }
-    Note over weatherService,weatherController: On error → errorHandler middleware
+    Express->>weatherLimiter: 30 req/min per IP
+    weatherLimiter-->>Express: Pass
+    Express->>validateQuery: zod weatherQuerySchema
+    validateQuery-->>Express: { city: "Pune" } (trimmed/coerced)
+    Express->>weatherController: getCurrentWeather
+    weatherController->>weatherService: fetchCurrentByCity
+    weatherService->>OpenWeatherMap: HTTPS (key server-side, TTL cache first)
+    OpenWeatherMap-->>weatherService: payload
+    weatherService-->>controller: normalized CurrentWeather
+    controller->>MongoDB: SearchHistory upsert (best-effort)
+    controller-->>Client: HTTP 200 { ok, data }
+    Note over weatherController,errorHandler: any throw → { ok:false, error } + status
 ```
 
 ### Security Measures
-1. **API Key Isolation:** `WEATHER_API_KEY` lives only in `backend/.env`; the frontend calls *our* API only (`vite.config.js` proxy).
-2. **Rate Limiting:** `express-rate-limit` — 60 requests/minute per IP on `/api/*`, stricter 10/minute if auth routes are added.
-3. **Input Validation:** Query params validated (`city` trimmed, 2–60 chars; `lat`/`lon` numeric ranges) before hitting the external API.
-4. **CORS:** Restricted to `CLIENT_ORIGIN` (default `http://localhost:5173`).
-5. **Centralized Error Handler:** Never leaks stack traces or upstream payloads to clients in production.
-6. **`.env` in `.gitignore`:** Secrets excluded from version control; `.env.example` documents required keys.
+1. **API Key Isolation:** never present in the frontend bundle; client only knows `/api/*`.
+2. **JWT Auth:** `jsonwebtoken` HS256, `7d` expiry, secret from `JWT_SECRET` env; tokens auto-attached by `api.js`, restored on refresh via `GET /api/auth/me`.
+3. **Password Hashing:** bcryptjs with 10 salt rounds; `passwordHash` never serialized (`toSafeJSON()`).
+4. **Zod Validation:** every weather query, search query, auth body, and favorite body is validated *before* controllers — invalid input returns `400` with human-readable messages (e.g. `lat must be between -90 and 90`).
+5. **Row-Level Scoping:** favorites queries always filter `{ user: req.user.id }` — users can never read or mutate each other's rows (compound unique index `{user, city}`).
+6. **Rate Limiting:** `weatherLimiter` 30/min · `authLimiter` 20/15min (brute-force) · `apiLimiter` 60/min.
+7. **CORS:** restricted to `CLIENT_ORIGIN` (`http://localhost:5173` in dev).
+8. **Error Hygiene:** centralized handler hides stack traces in production; upstream failures are mapped to friendly messages.
 
 ---
 
-## 10. Local Environment Setup & Execution
+## 10. Theme System (Dark / Light)
+
+### Implementation
+- `ThemeContext` stores `'dark' | 'light'` → writes `document.documentElement.dataset.theme` + `localStorage.wd_theme`.
+- Default follows `prefers-color-scheme`; toggle button (☀️/🌙) in the header and on `/auth`.
+- **Condition-aware accents:** `Dashboard.jsx` maps the current condition to `dataset.condition` (`clear | clouds | rain | thunderstorm | snow | atmos`), and CSS redefines `--accent` per condition **per theme**.
+
+### Palette
+| | Dark (default) | Light (minimalistic) |
+| :--- | :--- | :--- |
+| **Background** | Ocean navy `#04101f` with cyan/teal radial glows | Near-white `#fafafa`, no glows |
+| **Cards** | Glassmorphism: translucent + `backdrop-filter: blur(18px)` | Solid white, 1px `#ececec` borders, tiny shadow |
+| **Accent (default)** | Deep-sky cyan `#38bdf8` | Deep-sky `#0284c7` |
+| **Accent · Clear** | Amber `#fbbf24` | Amber-brown `#b45309` |
+| **Accent · Rain** | Sky `#38bdf8` | Ocean `#0369a1` |
+| **Accent · Thunder** | Orange `#f97316` | Burnt `#c2410c` |
+| **Accent · Snow** | Ice `#a5f3fc` | Teal `#0e7490` |
+| **Accent · Clouds** | Soft blue `#93c5fd` | Slate `#475569` |
+| **Typography** | `#e9f3ff`, large thin display temperature (weight 200, `clamp(3.8rem, 9vw, 5.4rem)`) | `#101418`, flat surfaces, generous whitespace, no heavy shadows |
+| **Radii** | `22px` cards | `16px` cards |
+
+Light theme also flips `color-scheme` so native controls (scrollbars, inputs) render light.
+
+---
+
+## 11. Local Environment Setup & Execution
 
 ### Prerequisites
 - Node.js ≥ 18 (ES Modules + native `fetch`)
-- MongoDB ≥ 6 running locally (`mongodb://127.0.0.1:27017`) or Atlas URI
-- Free OpenWeatherMap API key → <https://openweathermap.org/api> (sign up → "API keys" tab)
+- MongoDB — Atlas URI **or** local `mongodb://127.0.0.1:27017`
+- Free OpenWeatherMap API key → <https://openweathermap.org/api> *(new keys take up to 2 h to activate)*
 
 ### Backend
 ```powershell
 cd "Week4/Weather Application/backend"
-cp .env.example .env      # then fill WEATHER_API_KEY + MONGODB_URI
+cp .env.example .env      # fill WEATHER_API_KEY, MONGODB_URI, JWT_SECRET
 npm install
-npm run dev               # → Server listening on http://localhost:5000
+npm run dev               # → Weather API listening on http://localhost:5000
+npm test                  # → 14/14 passing
 ```
 
 ### Frontend (second terminal)
@@ -404,46 +420,43 @@ npm run dev               # → http://localhost:5173  (proxies /api to :5000)
 
 ### Verify
 ```powershell
-curl http://localhost:5000/health
-curl "http://localhost:5000/api/weather/current?city=Pune"
-```
-
-### Run Tests
-```powershell
-cd "Week4/Weather Application/backend"
-npm test                  # node --test tests/api.test.js
+curl http://localhost:5000/health                          # db: connected
+curl "http://localhost:5000/api/weather/current?city=Pune" # live data
+curl "http://localhost:5000/api/weather/search?q=Tokyo"    # geocoding
 ```
 
 ---
 
-## 11. Week 4 → Week 5 → Week 6 Roadmap
+## 12. Week 4 → Week 5 → Week 6 Roadmap
 
 | Week | Focus | Deliverables |
 | :--- | :--- | :--- |
-| **Week 4 (current)** | API integration + core UI | Backend proxy, current weather card, city search, 5-day grid, geolocation, history/favorites |
-| **Week 5** | Resilience & UX polish | Offline detection, retry with backoff, skeleton loaders, unit-test coverage, accessibility pass |
-| **Week 6** | Visualization & release | Chart.js temperature trend, °C/°F persistence, PWA manifest, production deployment |
+| **Week 4 (done)** | API integration + full dashboard | Backend proxy, auth, geocoding, hourly strip, charts, saved locations, dark/light themes, 14 tests |
+| **Week 5** | Resilience & polish | Offline detection, retry with backoff, accessibility audit (keyboard/screen-reader), unit-test coverage |
+| **Week 6** | Visualization & release | Air pollution layer, animated conditions, PWA manifest, production deployment (Vercel + Render) |
 
 ---
 
-## 12. Key Engineering Learnings
+## 13. Key Engineering Learnings
 
-1. **Never trust third-party payloads directly in the UI.** Normalizing OpenWeatherMap's response into a stable view model inside `weatherService.js` means a schema change on their side is a one-file fix, not a component rewrite.
-2. **Aggregate the 3-hour forecast deliberately.** OpenWeatherMap's `/forecast` returns 40 entries (3-hour intervals), not 5 days. Grouping by `dt_txt.slice(0,10)` and reducing min/max is where most beginner bugs live (timezone off-by-one, mixing `temp` and `feels_like`).
-3. **Geolocation needs graceful degradation.** Permission denial, `https`-only restrictions, and timeouts are normal states — the UI must remain usable with manual search alone.
-4. **Rate limits are a product constraint, not an afterthought.** The free tier allows ~1,000 calls/day; server-side caching + upserting history instead of re-fetching keeps dev usage predictable.
-5. **Consistency with Project 1 pays off.** Reusing the Week 2/3 patterns (`errorHandler`, `rateLimiter`, layered `routes → controllers → services`, centralized `api.js`) cut scaffolding time dramatically.
+1. **Never expose third-party payloads directly to the UI.** Normalizing OpenWeatherMap responses inside `weatherService.js` means an upstream schema change is a one-file fix, not a component rewrite.
+2. **The 3-hour forecast is not a daily forecast.** `/forecast` returns 40 entries (3-hour steps); deriving "next 24h" and "daily buckets" requires deliberate grouping by `dt` / `dt_txt` date — timezone off-by-one and mixing `temp` with `feels_like` are the classic bugs.
+3. **OWM geocoding quirks:** the host is `api.openweathermap.org/geo/1.0` (not `geo.*`), and it matches complete words only — so the UI must still support free-text submit alongside suggestions.
+4. **Row-level security is a query discipline.** Without Supabase RLS, MERN achieves the same guarantee by *always* filtering on `req.user.id` and enforcing `unique {user, city}` at the index level.
+5. **Rate limits are a product constraint.** A server-side TTL cache (default 600 s) plus three limiter tiers keeps free-tier usage predictable even with search-as-you-type.
+6. **Condition-aware theming via data attributes is cheap and powerful.** Setting `data-condition` on `<html>` and letting CSS redefine `--accent` gives every component (cards, charts, chips) the new color with zero React re-renders.
+7. **Code-split heavy libraries.** Lazy-loading recharts dropped the main bundle from 572 kB to 186 kB (60 kB gz) with charts in a separate 386 kB chunk loaded on demand.
 
 ---
 
-## 13. Deliverables & Verification Summary
+## 14. Deliverables & Verification Summary
 
 | Artifact | Description | Status |
 | :--- | :--- | :--- |
-| [`Week4/README.md`](./README.md) | Week 4 syllabus, structure, and getting-started guide | ✅ Complete |
+| [`Week4/README.md`](./README.md) | Week 4 syllabus, structure, getting-started guide | ✅ Complete |
 | [`Week4/documentation.md`](./documentation.md) | This technical documentation | ✅ Complete |
 | [`Week4/deployment-guide.md`](./deployment-guide.md) | Vercel + Render production deployment steps | ✅ Complete |
-| [`Week4/Weather Application/backend/`](./Weather%20Application/backend/) | Express 5 + Mongoose API with OpenWeatherMap proxy | ✅ Complete |
-| [`Week4/Weather Application/frontend/`](./Weather%20Application/frontend/) | React 18 + Vite 6 weather dashboard SPA | ✅ Complete |
-| `Week4/Weather Application/backend/tests/api.test.js` | Integration test suite (Node test runner) | ✅ Complete |
-| Charts / data visualization | Deferred to Week 6 per roadmap | ⏳ Planned |
+| `Week4/Weather Application/backend/` | Express + Mongoose API: weather proxy, geocoding, auth, favorites, rate limits | ✅ Complete |
+| `Week4/Weather Application/frontend/` | React SPA: dashboard, charts, hourly strip, auth page, dark/light themes | ✅ Complete |
+| `Week4/Weather Application/backend/tests/` | **14 automated tests — 100% pass rate** (aggregation, normalization, zod schemas, errors) | ✅ Complete |
+| Production deployment | Guide written; execution planned for Week 6 | ⏳ Planned |

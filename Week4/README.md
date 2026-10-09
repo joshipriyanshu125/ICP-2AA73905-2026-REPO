@@ -26,7 +26,7 @@ The Weather Dashboard Application provides users with quick access to real-time 
 | **Hourly Forecast Strip** | ✅ Complete | Next 24 hours (3-hour intervals) with icons and rain probability |
 | **Forecast Charts** | ✅ Complete | Temperature curve (area) + daily precipitation probability (bars) via recharts |
 | **Multi-Day Forecast** | ✅ Complete | Daily list — 5 days free plan, auto-upgrades to 7 days with One Call 3.0 |
-| **Browser Geolocation** | ✅ Complete | "Use my location" with permission states and graceful fallback to manual search |
+| **Browser Geolocation** | ✅ Complete | Real-time auto-locate on load (fresh high-accuracy fix, no dummy default city), permission states, accuracy warning for coarse positions, graceful fallback to manual search |
 | **Saved Locations + Auth** | ✅ Complete | Email/password sign-in (JWT + bcrypt), favorites scoped per-user in MongoDB |
 | **Dark / Light Mode** | ✅ Complete | Deep-sky dark theme with condition-aware accents + minimalistic light theme |
 | **Head Metadata** | ✅ Complete | Per-route title/description/og tags (dashboard + auth) |

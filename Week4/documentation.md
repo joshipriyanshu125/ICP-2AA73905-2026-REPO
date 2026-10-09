@@ -55,7 +55,7 @@ Users need quick access to real-time weather forecasts and visual climate data f
 | **Hourly Forecast Strip** | Next 24 hours in 3-hour intervals with icons + rain probability | ✅ |
 | **Forecast Charts** | recharts temperature area curve and daily precipitation bar chart (code-split chunk) | ✅ |
 | **Multi-Day Forecast** | Daily rows — 5 days on the free plan; auto-upgrades to 7 days if One Call 3.0 is subscribed | ✅ |
-| **Browser Geolocation** | "Use my location" with permission states (`idle/locating/granted/denied/unavailable`) | ✅ |
+| **Browser Geolocation** | Real-time auto-locate on load (fresh high-accuracy fix, no cached position, no hardcoded default city), permission states (`idle/locating/granted/denied/unavailable`), and an accuracy badge that warns when the browser only has a coarse (>10 km) network-based position | ✅ |
 | **Search History** | Last 10 searched cities persisted in MongoDB, shown as chips with last temperature | ✅ |
 | **Saved Locations (Favorites)** | Star cities — requires sign-in; rows scoped per user (`user` + compound unique index) | ✅ |
 | **Authentication** | Sign-up / sign-in (`/auth` route), JWT Bearer tokens, bcrypt hashing, session restore | ✅ |

@@ -1,16 +1,40 @@
+import { Link } from 'react-router-dom';
+
 /**
- * Favorite cities quick-switcher bar (persisted server-side in MongoDB).
+ * Saved locations row — quick-switch between favorite cities.
+ * Requires sign-in (server enforces per-user row-level scoping).
  */
-export default function FavoritesBar({ favorites, onSelect, onRemove }) {
-  if (!favorites.length) return null;
+export default function FavoritesBar({ favorites, signedIn, onSelect, onRemove }) {
+  if (!signedIn) {
+    return (
+      <section className="favorites" aria-label="Saved locations">
+        <span className="favorites__hint">
+          🔒 <Link to="/auth">Sign in</Link> to save favorite cities
+        </span>
+      </section>
+    );
+  }
+
+  if (!favorites.length) {
+    return (
+      <section className="favorites" aria-label="Saved locations">
+        <span className="favorites__hint">☆ Star a city to save it here</span>
+      </section>
+    );
+  }
 
   return (
-    <section className="favorites" aria-label="Favorite cities">
-      <span className="favorites__label">Favorites:</span>
+    <section className="favorites" aria-label="Saved locations">
+      <span className="favorites__label">Saved:</span>
       {favorites.map((fav) => (
         <span key={fav.city} className="fav-chip">
-          <button type="button" className="fav-chip__name" onClick={() => onSelect(fav.city)}>
-            ★ {fav.city}{fav.country && ` (${fav.country})`}
+          <button
+            type="button"
+            className="fav-chip__name"
+            onClick={() => onSelect({ city: fav.city, coords: fav.coords?.lat != null ? fav.coords : undefined })}
+          >
+            {fav.city}
+            {fav.country ? ` (${fav.country})` : ''}
           </button>
           <button
             type="button"

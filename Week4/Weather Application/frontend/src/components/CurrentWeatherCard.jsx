@@ -1,61 +1,64 @@
-import { iconUrl, conditionEmoji, toFahrenheit } from '../hooks/useGeolocation.js';
+import { iconUrl, toFahrenheit } from '../hooks/useGeolocation.js';
 
 /**
- * Hero card: temperature, condition, humidity, wind, pressure, visibility.
+ * Hero card: large display temperature, condition, feels-like + high/low,
+ * big condition icon, and favorite toggle. Sits left of the stat tiles.
  */
-export default function CurrentWeatherCard({ weather, unit, isFavorite, onToggleFavorite }) {
+export default function CurrentWeatherCard({ weather, unit, highLow, isFavorite, onToggleFavorite, canFavorite }) {
   if (!weather) return null;
-  const temp = unit === 'F' ? toFahrenheit(weather.temperature) : weather.temperature;
-  const feels = unit === 'F' ? toFahrenheit(weather.feelsLike) : weather.feelsLike;
+  const convert = (c) => (unit === 'F' ? toFahrenheit(c) : c);
+  const temp = convert(weather.temperature);
+  const feels = convert(weather.feelsLike);
 
   return (
-    <article className="weather-card" aria-label={`Current weather for ${weather.city}`}>
-      <header className="weather-card__head">
-        <div>
-          <h2 className="weather-card__city">
-            {weather.city}
-            {weather.country && <span className="weather-card__country">, {weather.country}</span>}
-          </h2>
-          <p className="weather-card__condition">
-            <img src={iconUrl(weather.icon)} alt="" width="28" height="28" />
-            {conditionEmoji(weather.condition)} {weather.description || weather.condition}
-          </p>
-        </div>
-        <button
-          type="button"
-          className={`btn-fav ${isFavorite ? 'is-fav' : ''}`}
-          onClick={onToggleFavorite}
-          aria-pressed={isFavorite}
-          title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-        >
-          {isFavorite ? '★' : '☆'}
-        </button>
-      </header>
+    <article className="card hero" aria-label={`Current weather for ${weather.city}`}>
+      <div className="hero__body">
+        <header className="hero__head">
+          <div>
+            <h2 className="hero__city">
+              {weather.city}
+              {weather.country && <span className="hero__country">, {weather.country}</span>}
+            </h2>
+            <p className="hero__condition">
+              <img src={iconUrl(weather.icon)} alt="" width="30" height="30" />
+              {weather.description || weather.condition}
+            </p>
+          </div>
+          <button
+            type="button"
+            className={`btn-fav ${isFavorite ? 'is-fav' : ''}`}
+            onClick={onToggleFavorite}
+            aria-pressed={isFavorite}
+            title={canFavorite ? (isFavorite ? 'Remove from favorites' : 'Save to favorites') : 'Sign in to save favorites'}
+            aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+          >
+            {isFavorite ? '★' : '☆'}
+          </button>
+        </header>
 
-      <div className="weather-card__temp">
-        <span className="temp-value">{temp}</span>
-        <span className="temp-unit">°{unit}</span>
+        <div className="hero__temp">
+          <span className="temp-value">{temp}</span>
+          <span className="temp-unit">°{unit}</span>
+        </div>
+
+        <p className="hero__meta">
+          Feels like <strong>{feels}°{unit}</strong>
+          {highLow && (
+            <>
+              {' '}· H <strong>{convert(highLow.high)}°</strong> / L <strong>{convert(highLow.low)}°</strong>
+            </>
+          )}
+        </p>
       </div>
-      <p className="weather-card__feels">Feels like {feels}°{unit}</p>
 
-      <dl className="weather-stats">
-        <div className="stat">
-          <dt>Humidity</dt>
-          <dd>{weather.humidity}%</dd>
-        </div>
-        <div className="stat">
-          <dt>Wind</dt>
-          <dd>{weather.windSpeed} m/s</dd>
-        </div>
-        <div className="stat">
-          <dt>Pressure</dt>
-          <dd>{weather.pressure} hPa</dd>
-        </div>
-        <div className="stat">
-          <dt>Visibility</dt>
-          <dd>{(weather.visibility / 1000).toFixed(1)} km</dd>
-        </div>
-      </dl>
+      <img
+        className="hero__icon"
+        src={iconUrl(weather.icon, '4x')}
+        alt=""
+        width="136"
+        height="136"
+        aria-hidden="true"
+      />
     </article>
   );
 }

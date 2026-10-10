@@ -48,7 +48,7 @@ src/
 | `HourlyStrip.jsx` | Next-24h horizontal strip (3-hour intervals, icons, rain %) |
 | `ForecastCharts.jsx` | Two side-by-side cards: recharts temperature curve + daily precipitation bars (code-split) |
 | `ForecastList.jsx` | Full-width multi-day rows with min — range bar — max (5 days free / 7 with One Call 3.0) |
-| `GeolocationBadge.jsx` | "Use my location" button + permission status |
+| `GeolocationBadge.jsx` | "Use my location" button + permission status + device accuracy badge (warns on coarse >10 km fixes) |
 | `FavoritesBar.jsx` | Saved locations quick-switcher (auth-aware sign-in prompt) |
 | `ThemeToggle.jsx` | Sun/moon dark ↔ light switch |
 | `hooks/useGeolocation.js` | Browser Geolocation hook + °C/°F and date helpers |

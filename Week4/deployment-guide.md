@@ -48,6 +48,8 @@
 | `JWT_EXPIRES_IN` | No | `7d` | Access token lifespan |
 | `OPENWEATHER_BASE_URL` | No | `https://api.openweathermap.org/data/2.5` | Override for testing |
 | `CACHE_TTL_SECONDS` | No | `600` | In-memory cache TTL for weather responses |
+| `OPENAI_API_KEY` | No | `sk-...` | Enables LLM-generated weather insights (rule engine is used when empty) |
+| `OPENAI_MODEL` | No | `gpt-4o-mini` | Chat model for insights (OpenAI-compatible endpoints supported via `OPENAI_BASE_URL`) |
 
 ### Frontend `.env`
 

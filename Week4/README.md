@@ -26,11 +26,13 @@ The Weather Dashboard Application provides users with quick access to real-time 
 | **Hourly Forecast Strip** | ✅ Complete | Next 24 hours (3-hour intervals) with icons and rain probability |
 | **Forecast Charts** | ✅ Complete | Temperature curve (area) + daily precipitation probability (bars) via recharts |
 | **Multi-Day Forecast** | ✅ Complete | Daily list — 5 days free plan, auto-upgrades to 7 days with One Call 3.0 |
+| **AI Weather Insights** | ✅ Complete | 3 brief, actionable recommendations above the hourly strip — LLM via optional `OPENAI_API_KEY`, rule-engine fallback otherwise (never fails) |
+| **Severe-Weather Alerts** | ✅ Complete | Alert banner (official One Call 3.0 warnings + custom temp/wind thresholds) with a per-user Alert Settings modal |
 | **Browser Geolocation** | ✅ Complete | Real-time auto-locate on load (fresh high-accuracy fix, no dummy default city), permission states, accuracy warning for coarse positions, graceful fallback to manual search |
 | **Saved Locations + Auth** | ✅ Complete | Email/password sign-in (JWT + bcrypt), favorites scoped per-user in MongoDB |
 | **Dark / Light Mode** | ✅ Complete | Deep-sky dark theme with condition-aware accents + minimalistic light theme |
 | **Head Metadata** | ✅ Complete | Per-route title/description/og tags (dashboard + auth) |
-| **Documentation & Deployment** | ✅ Complete | Full technical docs, deployment guide, 14/14 automated tests passing |
+| **Documentation & Deployment** | ✅ Complete | Full technical docs, deployment guide, 20/20 automated tests passing |
 
 ---
 
@@ -48,14 +50,14 @@ Week4/
     │   ├── .env / .env.example  # PORT, MONGODB_URI, WEATHER_API_KEY, JWT_SECRET
     │   ├── README.md         # Backend API reference
     │   ├── src/
-    │   │   ├── server.js             # Entry point — mounts /api/auth + /api/weather
+    │   │   ├── server.js             # Entry point — mounts /api/auth, /api/weather, /api/settings
     │   │   ├── config/db.js          # Mongoose connection
-    │   │   ├── models/               # User, SearchHistory, FavoriteCity
-    │   │   ├── routes/               # auth.js, weather.js
-    │   │   ├── controllers/          # authController, weatherController
-    │   │   ├── services/weatherService.js  # OWM client: weather, forecast, geocoding, One Call
+    │   │   ├── models/               # User, SearchHistory, FavoriteCity, UserSettings
+    │   │   ├── routes/               # auth.js, weather.js, settings.js
+    │   │   ├── controllers/          # authController, weatherController, settingsController
+    │   │   ├── services/             # weatherService (OWM client + One Call alerts), insightsService (LLM/rules)
     │   │   └── middleware/           # auth (JWT), validate (zod), schemas, errorHandler, rateLimiter
-    │   └── tests/api.test.js         # 14 automated tests (node:test)
+    │   └── tests/api.test.js         # 20 automated tests (node:test)
     └── frontend/             # React + Vite Frontend
         ├── package.json      # react, react-router-dom, recharts
         ├── vite.config.js    # Vite build config + /api dev proxy
@@ -163,6 +165,7 @@ cp .env.example .env
 # CLIENT_ORIGIN=http://localhost:5173
 # JWT_SECRET=a_long_random_string_for_auth_tokens
 # JWT_EXPIRES_IN=7d
+# OPENAI_API_KEY=          # optional — LLM weather insights (rule engine when empty)
 
 # Launch development server
 npm run dev

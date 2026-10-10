@@ -29,6 +29,7 @@ npm test                # run integration tests (no DB/key needed)
 | GET | `/api/weather/forecast?city=Pune` | Hourly strip + multi-day forecast (5-day free / 7-day with One Call 3.0) |
 | GET | `/api/weather/forecast?lat=..&lon=..` | Same, by coordinates |
 | GET | `/api/weather/search?q=Tokyo` | Geocoding suggestions (limit 5) |
+| GET | `/api/weather/insights?city=Pune&unit=C` | 3 AI weather insights (LLM when `OPENAI_API_KEY` is set, rule engine otherwise) — 10/min |
 | GET | `/api/weather/history` | Last 10 searched cities |
 | DELETE | `/api/weather/history` | Clear history |
 
@@ -39,6 +40,13 @@ npm test                # run integration tests (no DB/key needed)
 | GET | `/api/weather/favorites` | List *my* saved locations |
 | POST | `/api/weather/favorites` | Save `{ city, country, coords, label }` (409 on duplicate) |
 | DELETE | `/api/weather/favorites/:city` | Remove one of *my* favorites (404 if absent) |
+
+### Alert settings — require `Authorization: Bearer <token>` (per-user row scoping)
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| GET | `/api/settings` | *My* alert preferences (defaults before first save) |
+| PUT | `/api/settings` | Upsert `{ alertEnabled, minTempAlert °C, maxWindAlert m/s }` (zod validated) |
 
 ### Auth
 

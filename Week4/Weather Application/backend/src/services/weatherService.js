@@ -1,10 +1,16 @@
 import { httpError } from '../middleware/errorHandler.js';
 
 const BASE_URL = process.env.OPENWEATHER_BASE_URL || 'https://api.openweathermap.org/data/2.5';
+const GEO_URL = 'https://api.openweathermap.org/geo/1.0';
+const ONECALL_URL = 'https://api.openweathermap.org/data/3.0/onecall';
 
 // Simple in-memory cache: key → { data, expires } (protects free-tier quota)
 const cache = new Map();
 const TTL_MS = (Number(process.env.CACHE_TTL_SECONDS) || 600) * 1000;
+
+// One Call 3.0 requires a subscription — disable after the first 401/403
+// so we never waste a request (or log noise) once we know it's unavailable.
+let oneCallDisabled = false;
 
 function cacheGet(key) {
   const hit = cache.get(key);
@@ -14,7 +20,7 @@ function cacheGet(key) {
 }
 function cacheSet(key, data) {
   // prevent unbounded growth
-  if (cache.size > 200) cache.delete(cache.keys().next().value);
+  if (cache.size > 300) cache.delete(cache.keys().next().value);
   cache.set(key, { data, expires: Date.now() + TTL_MS });
 }
 
@@ -27,27 +33,25 @@ function apiKey() {
 }
 
 /** Translate upstream failures into friendly, stable client errors. */
-function mapUpstreamError(response, cityLabel) {
-  if (response.status === 404) throw httpError(404, `City "${cityLabel}" not found. Check the spelling.`);
-  if (response.status === 401) throw httpError(401, 'Weather service authentication failed (invalid API key).');
+function mapUpstreamError(response, label) {
+  if (response.status === 404) throw httpError(404, `City "${label}" not found. Check the spelling.`);
+  if (response.status === 401) throw httpError(401, 'Weather service authentication failed (invalid or not-yet-activated API key).');
   if (response.status === 429) throw httpError(429, 'Weather service rate limit exceeded. Try again shortly.');
   if (response.status >= 500) throw httpError(502, 'Weather service temporarily unavailable.');
   throw httpError(response.status || 502, `Weather fetch failed (${response.status}).`);
 }
 
-async function callOpenWeather(path, params, cityLabel) {
-  const url = new URL(`${BASE_URL}${path}`);
-  url.searchParams.set('units', 'metric');
-  url.searchParams.set('appid', apiKey());
-  for (const [k, v] of Object.entries(params)) url.searchParams.set(k, String(v));
-
-  const cacheKey = url.toString();
-  const cached = cacheGet(cacheKey);
-  if (cached) return cached;
+/**
+ * Low-level fetch to an OpenWeatherMap URL. Returns parsed JSON,
+ * maps upstream errors, and applies the in-memory TTL cache.
+ */
+async function callApi(fullUrl, label, { quiet = false } = {}) {
+  const cached = cacheGet(fullUrl);
+  if (cached !== null) return cached;
 
   let response;
   try {
-    response = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    response = await fetch(fullUrl, { signal: AbortSignal.timeout(8000) });
   } catch (err) {
     if (err.name === 'TimeoutError' || err.name === 'AbortError') {
       throw httpError(504, 'Weather service timed out. Check your connection and retry.');
@@ -55,12 +59,27 @@ async function callOpenWeather(path, params, cityLabel) {
     throw httpError(503, 'Could not reach the weather service. You appear to be offline.');
   }
 
-  if (!response.ok) mapUpstreamError(response, cityLabel);
+  if (!response.ok) {
+    if (quiet) return null; // optional call (e.g. One Call) — caller falls back
+    mapUpstreamError(response, label);
+  }
 
   const payload = await response.json();
-  cacheSet(cacheKey, payload);
+  cacheSet(fullUrl, payload);
   return payload;
 }
+
+function buildUrl(base, path, params) {
+  const url = new URL(`${base}${path}`);
+  url.searchParams.set('units', 'metric');
+  url.searchParams.set('appid', apiKey());
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
+  }
+  return url.toString();
+}
+
+/* ---------------- normalization ---------------- */
 
 /** Normalize /weather payload → stable view model. */
 function normalizeCurrent(data) {
@@ -72,10 +91,12 @@ function normalizeCurrent(data) {
     humidity: data.main?.humidity ?? 0,
     pressure: data.main?.pressure ?? 0,
     windSpeed: data.wind?.speed ?? 0,
+    windDeg: data.wind?.deg ?? 0,
     visibility: data.visibility ?? 0,
     condition: data.weather?.[0]?.main || 'Unknown',
     description: data.weather?.[0]?.description || '',
     icon: data.weather?.[0]?.icon || '01d',
+    clouds: data.clouds?.all ?? 0,
     sunrise: data.sys?.sunrise ?? 0,
     sunset: data.sys?.sunset ?? 0,
     dt: data.dt ?? 0,
@@ -83,7 +104,7 @@ function normalizeCurrent(data) {
   };
 }
 
-/** Bucket the 3-hour /forecast list by calendar day → 5 daily entries. */
+/** Bucket the 3-hour /forecast list by calendar day → daily entries. */
 function aggregateDaily(forecastList) {
   const buckets = new Map();
 
@@ -128,38 +149,124 @@ function aggregateDaily(forecastList) {
     }));
 }
 
+/** Next 24h of 3-hour slots → hourly strip entries. */
+function aggregateHourly(forecastList, fromUnix = Date.now() / 1000) {
+  const horizon = fromUnix + 24 * 3600;
+  return forecastList
+    .filter((item) => item.dt > fromUnix - 1800 && item.dt <= horizon)
+    .slice(0, 9)
+    .map((item) => ({
+      dt: item.dt,
+      temp: Math.round(item.main?.temp ?? 0),
+      condition: item.weather?.[0]?.main || 'Unknown',
+      icon: item.weather?.[0]?.icon || '01d',
+      pop: Math.round((item.pop ?? 0) * 100),
+      humidity: item.main?.humidity ?? 0
+    }));
+}
+
+/** Map One Call 3.0 daily[] → the same daily view model (up to 7 days). */
+function normalizeOneCallDaily(oneCall) {
+  if (!Array.isArray(oneCall?.daily)) return null;
+  return oneCall.daily.slice(0, 7).map((d) => ({
+    date: new Date(d.dt * 1000).toISOString().slice(0, 10),
+    tempMin: Math.round(d.temp?.min ?? 0),
+    tempMax: Math.round(d.temp?.max ?? 0),
+    humidity: Math.round(d.humidity ?? 0),
+    condition: d.weather?.[0]?.main || 'Unknown',
+    icon: d.weather?.[0]?.icon || '01d',
+    pop: Math.round((d.pop ?? 0) * 100),
+    sunrise: d.sunrise ?? 0,
+    sunset: d.sunset ?? 0,
+    moonPhase: d.moon_phase ?? null
+  }));
+}
+
+/* ---------------- public service API ---------------- */
+
+/** Fetch the free 5-day / 3-hour forecast list. */
+async function fetchForecastList(params) {
+  const data = await callApi(buildUrl(BASE_URL, '/forecast', params), params.q || 'forecast');
+  return { list: data?.list || [], city: data?.city || {} };
+}
+
+/** Combine hourly strip + daily list (One Call 7-day when available). */
+async function buildForecast({ list, city }, label) {
+  const hourly = aggregateHourly(list);
+  let days = aggregateDaily(list);
+  let source = 'forecast5'; // free 5-day / 3-hour endpoint
+
+  // Attempt One Call 3.0 for a true 7-day daily forecast
+  if (!oneCallDisabled && city?.coord?.lat != null) {
+    try {
+      const oneCall = await callApi(
+        buildUrl(ONECALL_URL, '', { lat: city.coord.lat, lon: city.coord.lon, exclude: 'minutely,alerts' }),
+        label,
+        { quiet: true }
+      );
+      const daily7 = oneCall ? normalizeOneCallDaily(oneCall) : null;
+      if (daily7 && daily7.length) {
+        days = daily7;
+        source = 'onecall7';
+      }
+    } catch {
+      oneCallDisabled = true; // key lacks One Call access — stop trying
+    }
+  }
+
+  return {
+    city: city?.name || label,
+    country: city?.country || '',
+    coords: city?.coord ? { lat: city.coord.lat, lon: city.coord.lon } : null,
+    days,
+    hourly,
+    source
+  };
+}
+
 export const weatherService = {
   /** Current weather by city name. */
   async fetchCurrentByCity(city) {
-    const data = await callOpenWeather('/weather', { q: city }, city);
+    const data = await callApi(buildUrl(BASE_URL, '/weather', { q: city }), city);
     return normalizeCurrent(data);
   },
 
   /** Current weather by geolocation coordinates. */
   async fetchCurrentByCoords(lat, lon) {
-    const data = await callOpenWeather('/weather', { lat, lon }, `${lat},${lon}`);
+    const data = await callApi(buildUrl(BASE_URL, '/weather', { lat, lon }), `${lat},${lon}`);
     return normalizeCurrent(data);
   },
 
-  /** 5-day / 3-hour forecast by city name → aggregated daily. */
+  /**
+   * Forecast: next-24h hourly strip + daily list.
+   * Tries One Call 3.0 first (7-day daily, requires free subscription);
+   * falls back silently to the standard free /forecast endpoint (5-day).
+   */
   async fetchForecastByCity(city) {
-    const data = await callOpenWeather('/forecast', { q: city }, city);
-    return {
-      city: data.city?.name || city,
-      country: data.city?.country || '',
-      days: aggregateDaily(data.list || [])
-    };
+    const payload = await fetchForecastList({ q: city });
+    return buildForecast(payload, city);
   },
 
-  /** 5-day forecast by coordinates. */
   async fetchForecastByCoords(lat, lon) {
-    const data = await callOpenWeather('/forecast', { lat, lon }, `${lat},${lon}`);
-    return {
-      city: data.city?.name || '',
-      country: data.city?.country || '',
-      days: aggregateDaily(data.list || [])
-    };
+    const payload = await fetchForecastList({ lat, lon });
+    return buildForecast(payload, `${lat},${lon}`);
+  },
+
+  /**
+   * City geocoding (OpenWeatherMap Geocoding API) — powers the
+   * search-as-you-type suggestions.
+   */
+  async geocode(query) {
+    const url = `${GEO_URL}/direct?q=${encodeURIComponent(query)}&limit=5&appid=${apiKey()}`;
+    const results = (await callApi(url, query)) || [];
+    return results.map((r) => ({
+      name: r.name,
+      state: r.state || '',
+      country: r.country || '',
+      lat: r.lat,
+      lon: r.lon
+    }));
   }
 };
 
-export { aggregateDaily, normalizeCurrent };
+export { aggregateDaily, aggregateHourly, normalizeCurrent, normalizeOneCallDaily };

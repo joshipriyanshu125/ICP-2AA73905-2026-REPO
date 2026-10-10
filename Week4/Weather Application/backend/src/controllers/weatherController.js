@@ -5,38 +5,13 @@ import FavoriteCity from '../models/FavoriteCity.js';
 
 const HISTORY_LIMIT = 10;
 
-/* ---------------- validation helpers ---------------- */
+/* ---------------- helpers ---------------- */
 
-function parseCoords(req) {
-  const { lat, lon } = req.query;
-  if (lat === undefined && lon === undefined) return null;
-  if (lat === undefined || lon === undefined) {
-    throw httpError(400, 'Both lat and lon query parameters are required together.');
-  }
-  const latitude = Number(lat);
-  const longitude = Number(lon);
-  if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90) {
-    throw httpError(400, 'lat must be a number between -90 and 90.');
-  }
-  if (!Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
-    throw httpError(400, 'lon must be a number between -180 and 180.');
-  }
-  return { lat: latitude, lon: longitude };
-}
-
-function parseCity(req) {
-  const city = (req.query.city || '').trim();
-  if (city.length < 2 || city.length > 60) {
-    throw httpError(400, 'Provide a city name between 2 and 60 characters.');
-  }
-  return city;
-}
-
-/** Resolve target location: coordinates (geolocation) or city name. */
+/** Resolve validated target: coordinates (geolocation) or city name. */
 function resolveTarget(req) {
-  const coords = parseCoords(req);
-  if (coords) return { coords };
-  return { city: parseCity(req) };
+  const { city, lat, lon } = req.query;
+  if (lat !== undefined && lon !== undefined) return { coords: { lat: Number(lat), lon: Number(lon) } };
+  return { city };
 }
 
 /** Best-effort history write — never fails the main request. */
@@ -70,7 +45,7 @@ async function recordSearch(current) {
   }
 }
 
-/* ---------------- handlers ---------------- */
+/* ---------------- weather handlers ---------------- */
 
 export async function getCurrentWeather(req, res, next) {
   try {
@@ -97,6 +72,18 @@ export async function getForecast(req, res, next) {
   }
 }
 
+/** City geocoding suggestions (search-as-you-type). */
+export async function searchCities(req, res, next) {
+  try {
+    const results = await weatherService.geocode(req.query.q);
+    res.json({ ok: true, data: results });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/* ---------------- history (public, per-browser) ---------------- */
+
 export async function getHistory(req, res, next) {
   try {
     const history = await SearchHistory.find().sort({ updatedAt: -1 }).limit(HISTORY_LIMIT).lean();
@@ -115,9 +102,17 @@ export async function clearHistory(req, res, next) {
   }
 }
 
+/* ---------------- favorites (authenticated, per-user) ----------------
+ * Row-level security equivalent: every query is filtered by req.user.id,
+ * so a user can never read or mutate another user's saved locations.
+ * ------------------------------------------------------------------- */
+
 export async function getFavorites(req, res, next) {
   try {
-    const favorites = await FavoriteCity.find().sort({ createdAt: -1 }).limit(20).lean();
+    const favorites = await FavoriteCity.find({ user: req.user.id })
+      .sort({ updatedAt: -1 })
+      .limit(20)
+      .lean();
     res.json({ ok: true, data: favorites });
   } catch (err) {
     next(err);
@@ -126,18 +121,18 @@ export async function getFavorites(req, res, next) {
 
 export async function addFavorite(req, res, next) {
   try {
-    const { city, country = '', coords = null, label = '' } = req.body || {};
-    const name = String(city || '').trim().toLowerCase();
-    if (name.length < 2 || name.length > 60) {
-      throw httpError(400, 'Provide a city name between 2 and 60 characters.');
-    }
+    const { city, country = '', coords = null, label = '' } = req.body;
+    const name = city.toLowerCase();
+
     const favorite = await FavoriteCity.findOneAndUpdate(
-      { city: name },
-      { $set: { city: name, country, coords, label } },
+      { user: req.user.id, city: name },
+      { $set: { user: req.user.id, city: name, country, coords, label } },
       { upsert: true, new: true }
     );
+
     res.status(201).json({ ok: true, data: favorite });
   } catch (err) {
+    if (err.code === 11000) return next(httpError(409, 'City already saved to favorites.'));
     next(err);
   }
 }
@@ -145,7 +140,7 @@ export async function addFavorite(req, res, next) {
 export async function removeFavorite(req, res, next) {
   try {
     const name = String(req.params.city || '').trim().toLowerCase();
-    const result = await FavoriteCity.deleteOne({ city: name });
+    const result = await FavoriteCity.deleteOne({ user: req.user.id, city: name });
     if (result.deletedCount === 0) throw httpError(404, `Favorite "${name}" not found.`);
     res.json({ ok: true, data: { removed: name } });
   } catch (err) {

@@ -56,6 +56,18 @@ export const api = {
   forecast: (target) =>
     request(`/api/weather/forecast?${target.coords ? qs({ lat: target.coords.lat, lon: target.coords.lon }) : qs({ city: target.city })}`),
   searchCities: (q) => request(`/api/weather/search?${qs({ q })}`),
+  insights: (target, unit = 'C') =>
+    request(
+      `/api/weather/insights?${
+        target.coords
+          ? qs({ lat: target.coords.lat, lon: target.coords.lon, unit })
+          : qs({ city: target.city, unit })
+      }`
+    ),
+
+  /* ---------- alert settings (authenticated) ---------- */
+  getSettings: () => request('/api/settings'),
+  saveSettings: (payload) => request('/api/settings', { method: 'PUT', body: JSON.stringify(payload) }),
 
   /* ---------- history (public) ---------- */
   history: () => request('/api/weather/history'),

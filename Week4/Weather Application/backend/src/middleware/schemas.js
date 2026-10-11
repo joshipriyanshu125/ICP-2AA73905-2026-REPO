@@ -20,17 +20,32 @@ const cityString = z
   .min(2, 'City name must be at least 2 characters')
   .max(60, 'City name must be at most 60 characters');
 
+const targetShape = {
+  city: cityString.optional(),
+  lat: optionalLat,
+  lon: optionalLon
+};
+
+const requireCityOrCoords = (v) => v.city || (v.lat !== undefined && v.lon !== undefined);
+const requireCoordsTogether = (v) => !(v.lat === undefined || v.lon === undefined) || !!v.city;
+
 /** Either ?city=… or ?lat=…&lon=… (geolocation) — never both required. */
 export const weatherQuerySchema = z
-  .object({
-    city: cityString.optional(),
-    lat: optionalLat,
-    lon: optionalLon
-  })
-  .refine((v) => v.city || (v.lat !== undefined && v.lon !== undefined), {
+  .object(targetShape)
+  .refine(requireCityOrCoords, {
     message: 'Provide a city name or both lat and lon coordinates.'
   })
-  .refine((v) => !(v.lat === undefined || v.lon === undefined) || v.city, {
+  .refine(requireCoordsTogether, {
+    message: 'Both lat and lon query parameters are required together.'
+  });
+
+/** Insights query = weather target + the display unit used for phrasing. */
+export const insightsQuerySchema = z
+  .object({ ...targetShape, unit: z.enum(['C', 'F']).optional().default('C') })
+  .refine(requireCityOrCoords, {
+    message: 'Provide a city name or both lat and lon coordinates.'
+  })
+  .refine(requireCoordsTogether, {
     message: 'Both lat and lon query parameters are required together.'
   });
 
@@ -82,4 +97,25 @@ export const favoriteSchema = z.object({
     .optional()
     .default(null)
     .nullable()
+});
+
+/* ---------------- alert settings (per-user preferences) ---------------- */
+
+export const settingsSchema = z.object({
+  alertEnabled: z
+    .boolean({ invalid_type_error: 'alertEnabled must be true or false' })
+    .optional()
+    .default(true),
+  minTempAlert: z.coerce
+    .number({ invalid_type_error: 'minTempAlert must be a number' })
+    .min(-60, 'minTempAlert must be between -60 and 60 °C')
+    .max(60, 'minTempAlert must be between -60 and 60 °C')
+    .optional()
+    .default(5),
+  maxWindAlert: z.coerce
+    .number({ invalid_type_error: 'maxWindAlert must be a number' })
+    .min(0, 'maxWindAlert must be between 0 and 120 m/s')
+    .max(120, 'maxWindAlert must be between 0 and 120 m/s')
+    .optional()
+    .default(20)
 });

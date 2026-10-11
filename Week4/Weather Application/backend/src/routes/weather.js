@@ -1,11 +1,12 @@
 import { Router } from 'express';
-import { weatherLimiter } from '../middleware/rateLimiter.js';
+import { weatherLimiter, insightsLimiter } from '../middleware/rateLimiter.js';
 import { validateQuery } from '../middleware/validate.js';
-import { weatherQuerySchema, searchQuerySchema } from '../middleware/schemas.js';
+import { weatherQuerySchema, searchQuerySchema, insightsQuerySchema } from '../middleware/schemas.js';
 import { requireAuth } from '../middleware/auth.js';
 import {
   getCurrentWeather,
   getForecast,
+  getWeatherInsights,
   searchCities,
   getHistory,
   clearHistory,
@@ -20,6 +21,9 @@ const router = Router();
 router.get('/current', weatherLimiter, validateQuery(weatherQuerySchema), getCurrentWeather);
 router.get('/forecast', weatherLimiter, validateQuery(weatherQuerySchema), getForecast);
 router.get('/search', weatherLimiter, validateQuery(searchQuerySchema), searchCities);
+
+/* AI insights reuse the cached weather data but may call an LLM — tighter limit */
+router.get('/insights', insightsLimiter, validateQuery(insightsQuerySchema), getWeatherInsights);
 
 /* Local persistence — history is public (per-browser), favorites need auth */
 router.get('/history', getHistory);

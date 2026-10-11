@@ -26,3 +26,12 @@ export const authLimiter = rateLimit({
   legacyHeaders: false,
   message: { ok: false, error: 'Too many sign-in attempts. Try again in 15 minutes.' }
 });
+
+/** Insights may call a paid LLM — tight limit to control cost/latency. */
+export const insightsLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { ok: false, error: 'Insight request limit reached. Try again in a minute.' }
+});

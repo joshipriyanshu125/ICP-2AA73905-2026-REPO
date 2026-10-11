@@ -182,6 +182,23 @@ function normalizeOneCallDaily(oneCall) {
   }));
 }
 
+/**
+ * Map One Call 3.0 alerts[] → stable view model for the AlertBanner.
+ * The free 5-day endpoint has no formal warnings, so this is always []
+ * unless the key is subscribed to One Call 3.0.
+ */
+function normalizeOneCallAlerts(list) {
+  if (!Array.isArray(list)) return [];
+  return list.slice(0, 10).map((a) => ({
+    senderName: a.sender_name || '',
+    event: a.event || 'Weather alert',
+    start: a.start || 0,
+    end: a.end || 0,
+    description: String(a.description || '').trim(),
+    tags: Array.isArray(a.tags) ? a.tags : []
+  }));
+}
+
 /* ---------------- public service API ---------------- */
 
 /** Fetch the free 5-day / 3-hour forecast list. */
@@ -195,15 +212,17 @@ async function buildForecast({ list, city }, label) {
   const hourly = aggregateHourly(list);
   let days = aggregateDaily(list);
   let source = 'forecast5'; // free 5-day / 3-hour endpoint
+  let alerts = []; // severe-weather warnings (One Call 3.0 only)
 
-  // Attempt One Call 3.0 for a true 7-day daily forecast
+  // Attempt One Call 3.0 for a true 7-day daily forecast + severe alerts
   if (!oneCallDisabled && city?.coord?.lat != null) {
     try {
       const oneCall = await callApi(
-        buildUrl(ONECALL_URL, '', { lat: city.coord.lat, lon: city.coord.lon, exclude: 'minutely,alerts' }),
+        buildUrl(ONECALL_URL, '', { lat: city.coord.lat, lon: city.coord.lon, exclude: 'minutely,hourly' }),
         label,
         { quiet: true }
       );
+      if (oneCall) alerts = normalizeOneCallAlerts(oneCall.alerts);
       const daily7 = oneCall ? normalizeOneCallDaily(oneCall) : null;
       if (daily7 && daily7.length) {
         days = daily7;
@@ -220,6 +239,7 @@ async function buildForecast({ list, city }, label) {
     coords: city?.coord ? { lat: city.coord.lat, lon: city.coord.lon } : null,
     days,
     hourly,
+    alerts,
     source
   };
 }
@@ -269,4 +289,4 @@ export const weatherService = {
   }
 };
 
-export { aggregateDaily, aggregateHourly, normalizeCurrent, normalizeOneCallDaily };
+export { aggregateDaily, aggregateHourly, normalizeCurrent, normalizeOneCallAlerts, normalizeOneCallDaily };

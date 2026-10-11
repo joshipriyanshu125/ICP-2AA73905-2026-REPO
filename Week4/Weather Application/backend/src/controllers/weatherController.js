@@ -1,4 +1,5 @@
 import { weatherService } from '../services/weatherService.js';
+import { generateInsights } from '../services/insightsService.js';
 import { httpError } from '../middleware/errorHandler.js';
 import SearchHistory from '../models/SearchHistory.js';
 import FavoriteCity from '../models/FavoriteCity.js';
@@ -77,6 +78,35 @@ export async function searchCities(req, res, next) {
   try {
     const results = await weatherService.geocode(req.query.q);
     res.json({ ok: true, data: results });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * AI weather insights: 3 brief, actionable recommendations for the same
+ * WeatherBundle the dashboard renders. Uses an LLM when OPENAI_API_KEY is
+ * configured; otherwise the built-in rule engine (never fails on the AI layer).
+ */
+export async function getWeatherInsights(req, res, next) {
+  try {
+    const target = resolveTarget(req);
+    const unit = req.query.unit === 'F' ? 'F' : 'C';
+
+    const [current, forecast] = await Promise.all([
+      target.coords
+        ? weatherService.fetchCurrentByCoords(target.coords.lat, target.coords.lon)
+        : weatherService.fetchCurrentByCity(target.city),
+      target.coords
+        ? weatherService.fetchForecastByCoords(target.coords.lat, target.coords.lon)
+        : weatherService.fetchForecastByCity(target.city)
+    ]);
+
+    const result = await generateInsights({ current, forecast }, unit);
+    res.json({
+      ok: true,
+      data: { ...result, city: current.city, unit, generatedAt: new Date().toISOString() }
+    });
   } catch (err) {
     next(err);
   }

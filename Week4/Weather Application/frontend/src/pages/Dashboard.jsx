@@ -11,6 +11,9 @@ import ForecastList from '../components/ForecastList.jsx';
 import FavoritesBar from '../components/FavoritesBar.jsx';
 import GeolocationBadge from '../components/GeolocationBadge.jsx';
 import ThemeToggle from '../components/ThemeToggle.jsx';
+import AlertBanner from '../components/AlertBanner.jsx';
+import AlertSettings from '../components/AlertSettings.jsx';
+import WeatherInsights from '../components/WeatherInsights.jsx';
 
 // recharts is heavy — split it into its own chunk
 const ForecastCharts = lazy(() => import('../components/ForecastCharts.jsx'));
@@ -36,6 +39,9 @@ export default function Dashboard() {
   const [forecast, setForecast] = useState(null);
   const [history, setHistory] = useState([]);
   const [favorites, setFavorites] = useState([]);
+  const [target, setTarget] = useState(null); // last requested city/coords (drives insights)
+  const [settings, setSettings] = useState(null); // per-user alert preferences
+  const [alertsOpen, setAlertsOpen] = useState(false);
   const [unit, setUnit] = useState(() => localStorage.getItem('wd_unit') || 'C');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -93,6 +99,15 @@ export default function Dashboard() {
     loadFavorites();
   }, [loadHistory, loadFavorites]);
 
+  // Per-user alert preferences (defaults when signed out)
+  useEffect(() => {
+    if (!user) {
+      setSettings(null);
+      return;
+    }
+    api.getSettings().then(setSettings).catch(() => setSettings(null));
+  }, [user]);
+
   useEffect(() => {
     localStorage.setItem('wd_unit', unit);
   }, [unit]);
@@ -105,6 +120,7 @@ export default function Dashboard() {
         const [current, multiDay] = await Promise.all([api.currentWeather(target), api.forecast(target)]);
         setWeather(current);
         setForecast(multiDay);
+        setTarget(target);
         loadHistory();
       } catch (err) {
         setError(err.message || 'Failed to fetch weather data.');
@@ -190,6 +206,15 @@ export default function Dashboard() {
             °{unit === 'C' ? 'F' : 'C'}
           </button>
           <ThemeToggle />
+          <button
+            type="button"
+            className="icon-btn"
+            onClick={() => setAlertsOpen(true)}
+            aria-label="Alert settings"
+            title="Alert settings"
+          >
+            🔔
+          </button>
           {user ? (
             <button type="button" className="auth-link" onClick={logout} title="Sign out">
               <span className="avatar" aria-hidden="true">{initials}</span>
@@ -202,6 +227,14 @@ export default function Dashboard() {
       </header>
 
       <main>
+        {/* Severe-weather warnings: official OWM alerts + personal thresholds */}
+        <AlertBanner
+          alerts={forecast?.alerts}
+          weather={weather}
+          settings={settings}
+          signedIn={!!user}
+        />
+
         <SearchForm
           onSearch={loadWeather}
           history={history}
@@ -255,6 +288,8 @@ export default function Dashboard() {
 
             {!loading && (
               <>
+                {/* 3 actionable AI insights — above the Next-24-hours strip */}
+                <WeatherInsights target={target} unit={unit} />
                 <div className="hourly-section">
                   <HourlyStrip hourly={forecast?.hourly} unit={unit} />
                 </div>
@@ -267,6 +302,19 @@ export default function Dashboard() {
           </>
         )}
       </main>
+
+      {/* Configurable alert preferences */}
+      <AlertSettings
+        open={alertsOpen}
+        onClose={() => setAlertsOpen(false)}
+        user={user}
+        settings={settings}
+        onSaved={setSettings}
+        onSignIn={() => {
+          setAlertsOpen(false);
+          navigate('/auth');
+        }}
+      />
     </div>
   );
 }

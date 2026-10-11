@@ -220,3 +220,126 @@ test('searchQuerySchema requires a meaningful query', async () => {
   assert.ok(!searchQuerySchema.safeParse({ q: 'a' }).success);
   assert.ok(searchQuerySchema.safeParse({ q: 'Reykjavik' }).success);
 });
+
+/* ---------- severe-weather alerts (One Call 3.0) ---------- */
+
+test('normalizeOneCallAlerts maps OWM alerts and tolerates bad payloads', async () => {
+  const { normalizeOneCallAlerts } = await import('../src/services/weatherService.js');
+
+  const mapped = normalizeOneCallAlerts([
+    {
+      sender_name: 'IMD',
+      event: 'Heavy Rain Warning',
+      start: 1791500000,
+      end: 1791540000,
+      description: '  Expect very heavy rainfall.  ',
+      tags: ['Rain']
+    }
+  ]);
+
+  assert.equal(mapped.length, 1);
+  assert.equal(mapped[0].event, 'Heavy Rain Warning');
+  assert.equal(mapped[0].senderName, 'IMD');
+  assert.equal(mapped[0].description, 'Expect very heavy rainfall.'); // trimmed
+  assert.equal(mapped[0].start, 1791500000);
+  assert.deepEqual(mapped[0].tags, ['Rain']);
+
+  assert.deepEqual(normalizeOneCallAlerts(undefined), []);
+  assert.deepEqual(normalizeOneCallAlerts('not-an-array'), []);
+});
+
+/* ---------- AI weather insights ---------- */
+
+test('buildLocalInsights returns exactly 3 actionable insights', async () => {
+  const { buildLocalInsights } = await import('../src/services/insightsService.js');
+
+  const bundle = {
+    current: { city: 'Test', temperature: 34, feelsLike: 38, humidity: 40, windSpeed: 3, condition: 'Clear' },
+    forecast: {
+      hourly: [{ pop: 0.7 }, { pop: 0.8 }],
+      days: [
+        { tempMin: 26, tempMax: 35, condition: 'Clear', pop: 10 },
+        { tempMin: 25, tempMax: 30, condition: 'Rain', pop: 60 }
+      ]
+    }
+  };
+
+  const insights = buildLocalInsights(bundle, 'C');
+
+  assert.equal(insights.length, 3);
+  assert.ok(insights.every((s) => typeof s === 'string' && s.length > 10));
+  assert.match(insights[0], /rain|umbrella/i); // wet next-24h → rain advice
+  assert.match(insights[1], /hot|hydrated/i); // 34°C → heat advice
+});
+
+test('buildLocalInsights formats temperatures in the requested unit', async () => {
+  const { buildLocalInsights } = await import('../src/services/insightsService.js');
+  const bundle = {
+    current: { city: 'Y', temperature: 10, feelsLike: 9, humidity: 60, windSpeed: 4, condition: 'Clouds' },
+    forecast: { hourly: [{ pop: 0 }], days: [{ tempMin: 5, tempMax: 12, condition: 'Clouds' }] }
+  };
+
+  const fahrenheit = buildLocalInsights(bundle, 'F');
+  assert.ok(fahrenheit.some((s) => s.includes('°F')), 'F unit → °F phrasing');
+  assert.ok(fahrenheit.every((s) => !s.includes('°C')));
+  assert.match(fahrenheit[1], /50°F/, '10°C converts correctly to 50°F');
+  assert.match(fahrenheit[1], /48°F/, 'feels-like 9°C converts to 48°F');
+
+  const celsius = buildLocalInsights(bundle, 'C');
+  assert.match(celsius[1], /10°C/);
+});
+
+test('generateInsights falls back to the rule engine when no LLM key is set', async () => {
+  const { generateInsights } = await import('../src/services/insightsService.js');
+  const previousKey = process.env.OPENAI_API_KEY;
+  delete process.env.OPENAI_API_KEY;
+
+  try {
+    const result = await generateInsights(
+      {
+        current: { city: 'Fallbackville', temperature: 10, feelsLike: 8, humidity: 70, windSpeed: 5, condition: 'Clouds' },
+        forecast: { hourly: [{ pop: 0.1 }], days: [] }
+      },
+      'C'
+    );
+
+    assert.equal(result.source, 'local');
+    assert.equal(result.insights.length, 3);
+  } finally {
+    if (previousKey !== undefined) process.env.OPENAI_API_KEY = previousKey;
+  }
+});
+
+/* ---------- alert settings (per-user preferences) ---------- */
+
+test('settingsSchema validates thresholds and coerces inputs', async () => {
+  const { settingsSchema } = await import('../src/middleware/schemas.js');
+
+  const ok = settingsSchema.safeParse({ alertEnabled: false, minTempAlert: '-3', maxWindAlert: '25' });
+  assert.ok(ok.success);
+  assert.equal(ok.data.alertEnabled, false);
+  assert.equal(ok.data.minTempAlert, -3);
+  assert.equal(ok.data.maxWindAlert, 25);
+
+  const bad = settingsSchema.safeParse({ alertEnabled: true, minTempAlert: 999, maxWindAlert: -5 });
+  assert.ok(!bad.success, 'out-of-range thresholds must fail');
+  const messages = bad.error.issues.map((i) => i.message).join(' ');
+  assert.match(messages, /-60 and 60/);
+  assert.match(messages, /0 and 120/);
+
+  const defaults = settingsSchema.safeParse({});
+  assert.ok(defaults.success);
+  assert.equal(defaults.data.alertEnabled, true);
+  assert.equal(defaults.data.minTempAlert, 5);
+  assert.equal(defaults.data.maxWindAlert, 20);
+});
+
+test('insightsQuerySchema accepts a target plus display unit', async () => {
+  const { insightsQuerySchema } = await import('../src/middleware/schemas.js');
+
+  assert.ok(insightsQuerySchema.safeParse({ city: 'Pune' }).success);
+  assert.equal(insightsQuerySchema.safeParse({ city: 'Pune' }).data.unit, 'C'); // default
+  assert.equal(insightsQuerySchema.safeParse({ city: 'Pune', unit: 'F' }).data.unit, 'F');
+  assert.ok(!insightsQuerySchema.safeParse({ city: 'Pune', unit: 'K' }).success, 'bad unit rejected');
+  assert.ok(!insightsQuerySchema.safeParse({ lat: '999', lon: '10' }).success, 'bad coords rejected');
+});

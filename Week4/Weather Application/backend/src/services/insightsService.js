@@ -1,11 +1,12 @@
 /**
- * Weather insights generator — "3 brief, actionable insights".
+ * Weather insights generator — concise explanations plus practical advice.
  *
  * Data source: the same WeatherBundle the dashboard renders (current +
  * hourly + daily from the weather service).
  *
- * - If OPENAI_API_KEY is configured, the bundle is sent to an
- *   OpenAI-compatible chat-completions API for natural-language tips.
+ * - If AI_GATEWAY_API_KEY is configured, the bundle is sent to the
+ *   Vercel AI Gateway's OpenAI-compatible chat-completions API. The legacy
+ *   OPENAI_* variables remain supported for local/self-hosted deployments.
  * - Otherwise — or whenever the LLM call fails or times out — a
  *   deterministic rule engine produces the insights instead, so this
  *   endpoint NEVER fails because of the AI layer.
@@ -38,6 +39,12 @@ function cacheSet(key, data) {
 const round = (n) => Math.round(Number(n) || 0);
 const toF = (c) => Math.round((Number(c) || 0) * 1.8 + 32); // °C → °F
 const temp = (c, unit) => (unit === 'F' ? `${toF(c)}°F` : `${round(c)}°C`);
+const deltaTemp = (c, unit) => (unit === 'F' ? `${Math.round((Number(c) || 0) * 1.8)}°F` : `${round(c)}°C`);
+
+const cleanList = (value, limit = 4) =>
+  Array.isArray(value)
+    ? value.map((item) => String(item ?? '').trim()).filter(Boolean).slice(0, limit)
+    : [];
 
 /** Compact, token-friendly summary of the WeatherBundle for the LLM. */
 function weatherSummary({ current = {}, forecast = {} }, unit) {
@@ -128,13 +135,77 @@ export function buildLocalInsights(bundle, unit = 'C') {
   return insights.slice(0, 3);
 }
 
+/**
+ * Local analysis used when the model is unavailable. It deliberately uses
+ * the same current + forecast bundle as the model so the feature remains
+ * useful without an AI credential.
+ */
+export function buildLocalAnalysis(bundle, unit = 'C') {
+  const { current = {}, forecast = {} } = bundle || {};
+  const days = Array.isArray(forecast.days) ? forecast.days : [];
+  const today = days[0];
+  const tomorrow = days[1];
+  const changes = [];
+  const activities = [];
+  const precautions = [];
+  const now = round(current.temperature);
+  const todayHigh = Number(today?.tempMax);
+  const tomorrowHigh = Number(tomorrow?.tempMax);
+  const pop24 = (Array.isArray(forecast.hourly) ? forecast.hourly : [])
+    .reduce((max, slot) => Math.max(max, Number(slot?.pop) || 0), 0);
+
+  if (Number.isFinite(todayHigh) && Math.abs(todayHigh - now) >= 5) {
+    changes.push(`Temperatures move from ${temp(now, unit)} now to a ${temp(todayHigh, unit)} high today.`);
+  }
+  if (Number.isFinite(tomorrowHigh) && Number.isFinite(todayHigh) && Math.abs(tomorrowHigh - todayHigh) >= 3) {
+    changes.push(`Tomorrow is ${tomorrowHigh > todayHigh ? 'warmer' : 'cooler'} by about ${deltaTemp(Math.abs(tomorrowHigh - todayHigh), unit)}, reaching ${temp(tomorrowHigh, unit)}.`);
+  }
+  if (pop24 >= 30 || Number(today?.pop) >= 30) {
+    changes.push(`Precipitation risk increases to ${Math.max(pop24, Number(today?.pop) || 0)}% over the near-term forecast.`);
+  }
+  if (today?.condition && current.condition && today.condition.toLowerCase() !== current.condition.toLowerCase()) {
+    changes.push(`Conditions may shift from ${String(current.condition).toLowerCase()} to ${String(today.condition).toLowerCase()} later today.`);
+  }
+  if (!changes.length) changes.push('The current pattern looks fairly steady across the available forecast.');
+
+  if (pop24 < 30 && !/storm|snow/i.test(String(current.condition))) {
+    activities.push('Outdoor plans are a reasonable choice during the drier windows.');
+  } else if (pop24 >= 60 || /storm|snow/i.test(String(current.condition))) {
+    activities.push('Choose flexible indoor plans and use shorter outdoor windows between showers.');
+  } else {
+    activities.push('A short outdoor activity should work well if you keep a backup plan nearby.');
+  }
+  if (now >= 30) activities.push('Plan lower-intensity activities in shaded or air-conditioned places.');
+  else if (now <= 8) activities.push('Indoor errands or a bundled-up walk are more comfortable than extended outdoor time.');
+  else activities.push('A walk, commute, or casual outdoor activity should be comfortable with the right layer.');
+
+  if (pop24 >= 40) precautions.push('Carry rain protection and allow extra time for wet travel.');
+  if (Number(current.windSpeed) >= 12) precautions.push(`Secure loose items and be cautious around exposed areas with ${round(current.windSpeed)} m/s winds.`);
+  if (now >= 32 || Number(current.feelsLike) >= 35) precautions.push('Drink water regularly and limit direct sun around the hottest part of the day.');
+  if (now <= 5 || Number(current.feelsLike) <= 3) precautions.push('Wear insulating layers and protect exposed skin from the cold.');
+  if (/fog|mist|haze/i.test(String(current.condition))) precautions.push('Expect reduced visibility; slow down and use low-beam headlights when driving.');
+  if (!precautions.length) precautions.push('No major extra precaution stands out; check again before plans if conditions change.');
+
+  return {
+    summary: `${current.city || 'This location'} is currently ${String(current.condition || 'showing mixed conditions').toLowerCase()} at ${temp(now, unit)}.`,
+    changes: changes.slice(0, 4),
+    activities: activities.slice(0, 3),
+    precautions: precautions.slice(0, 4)
+  };
+}
+
 /* ---------------- LLM path (optional) ---------------- */
 
-/** Ask an OpenAI-compatible /chat/completions endpoint for JSON insights. */
+/** Ask an AI Gateway/OpenAI-compatible /chat/completions endpoint for JSON. */
 async function callLlm(bundle, unit) {
-  const key = process.env.OPENAI_API_KEY;
-  const base = (process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1').replace(/\/+$/, '');
-  const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+  const gateway = Boolean(process.env.AI_GATEWAY_API_KEY);
+  const key = process.env.AI_GATEWAY_API_KEY || process.env.OPENAI_API_KEY;
+  const base = (gateway
+    ? process.env.AI_GATEWAY_BASE_URL || 'https://ai-gateway.vercel.sh/v1'
+    : process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1').replace(/\/+$/, '');
+  const model = gateway
+    ? process.env.AI_GATEWAY_MODEL || 'openai/gpt-4o-mini'
+    : process.env.OPENAI_MODEL || 'gpt-4o-mini';
 
   const response = await fetch(`${base}/chat/completions`, {
     method: 'POST',
@@ -142,16 +213,16 @@ async function callLlm(bundle, unit) {
     body: JSON.stringify({
       model,
       temperature: 0.4,
-      max_tokens: 300,
+      max_tokens: 500,
       response_format: { type: 'json_object' },
       messages: [
         {
           role: 'system',
-          content:
-            'You are a concise weather assistant for a dashboard. Reply ONLY with JSON ' +
-            '{"insights": ["...", "...", "..."]} containing exactly 3 brief, actionable, ' +
-            `friendly sentences. Use °${unit} for temperatures and m/s for wind, matching the data given. ` +
-            'No markdown, no extra keys.'
+            content:
+            'You are a concise weather assistant for a dashboard. Reply ONLY with JSON using exactly these keys: ' +
+            '{"summary":"...","changes":["..."],"activities":["..."],"precautions":["..."],"insights":["...","...","..."]}. ' +
+            `Explain the most notable current-to-forecast changes, then give practical activities and precautions. Use °${unit} for temperatures and m/s for wind, matching the data given. ` +
+            'Keep each item to one sentence, use plain language, do not invent data, and return 1-4 items per list.'
         },
         { role: 'user', content: weatherSummary(bundle, unit) }
       ]
@@ -162,21 +233,25 @@ async function callLlm(bundle, unit) {
   if (!response.ok) throw new Error(`LLM responded ${response.status}`);
   const payload = await response.json();
   const content = payload?.choices?.[0]?.message?.content;
-  const parsed = JSON.parse(content || '{}');
-  const list = Array.isArray(parsed.insights)
-    ? parsed.insights.map((s) => String(s ?? '').trim()).filter(Boolean).slice(0, 3)
-    : [];
+  const parsed = JSON.parse(String(content || '{}').replace(/^```json\s*|\s*```$/g, ''));
+  const list = cleanList(parsed.insights, 3);
   if (!list.length) throw new Error('LLM returned no insights');
 
-  // never ship fewer than 3 — pad from the rule engine
-  const fallback = buildLocalInsights(bundle, unit);
-  while (list.length < 3) list.push(fallback[list.length]);
-  return list;
+  const fallback = buildLocalAnalysis(bundle, unit);
+  const fallbackInsights = buildLocalInsights(bundle, unit);
+  while (list.length < 3) list.push(fallbackInsights[list.length]);
+  return {
+    insights: list,
+    summary: String(parsed.summary || fallback.summary).trim(),
+    changes: cleanList(parsed.changes).length ? cleanList(parsed.changes) : fallback.changes,
+    activities: cleanList(parsed.activities).length ? cleanList(parsed.activities) : fallback.activities,
+    precautions: cleanList(parsed.precautions).length ? cleanList(parsed.precautions) : fallback.precautions
+  };
 }
 
 /**
  * Generate insights for a WeatherBundle.
- * Returns { insights: string[3], source: 'llm' | 'local' }.
+ * Returns structured analysis plus the legacy `insights` list.
  * Never throws because of the AI layer — weather-data errors still
  * propagate from the caller (they surface as normal 404/5xx responses).
  */
@@ -187,9 +262,9 @@ export async function generateInsights(bundle, unit = 'C') {
   if (cached) return cached;
 
   let result = null;
-  if (process.env.OPENAI_API_KEY && Date.now() >= llmCooldownUntil) {
+  if ((process.env.AI_GATEWAY_API_KEY || process.env.OPENAI_API_KEY) && Date.now() >= llmCooldownUntil) {
     try {
-      result = { insights: await callLlm(bundle, unit), source: 'llm' };
+      result = { ...(await callLlm(bundle, unit)), source: 'llm' };
       llmFailures = 0;
     } catch (err) {
       llmFailures += 1;
@@ -201,7 +276,7 @@ export async function generateInsights(bundle, unit = 'C') {
       }
     }
   }
-  if (!result) result = { insights: buildLocalInsights(bundle, unit), source: 'local' };
+  if (!result) result = { ...buildLocalAnalysis(bundle, unit), insights: buildLocalInsights(bundle, unit), source: 'local' };
 
   cacheSet(key, result);
   return result;

@@ -78,6 +78,8 @@ export const api = {
   addFavorite: (payload) =>
     request('/api/weather/favorites', { method: 'POST', body: JSON.stringify(payload) }),
   removeFavorite: (city) => request(`/api/weather/favorites/${encodeURIComponent(city)}`, { method: 'DELETE' }),
+  alertPreview: () => request('/api/weather/alerts/preview'),
+  alertHistory: () => request('/api/weather/alerts/history'),
 
   /* ---------- auth ---------- */
   signup: (payload) => request('/api/auth/signup', { method: 'POST', body: JSON.stringify(payload) }),

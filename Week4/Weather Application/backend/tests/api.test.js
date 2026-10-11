@@ -310,6 +310,40 @@ test('generateInsights falls back to the rule engine when no LLM key is set', as
   }
 });
 
+test('buildLocalAnalysis explains forecast changes and provides plans plus precautions', async () => {
+  const { buildLocalAnalysis } = await import('../src/services/insightsService.js');
+  const analysis = buildLocalAnalysis({
+    current: { city: 'Changeville', temperature: 20, feelsLike: 21, humidity: 60, windSpeed: 14, condition: 'Clouds' },
+    forecast: {
+      hourly: [{ pop: 0.8 }],
+      days: [
+        { tempMin: 17, tempMax: 27, condition: 'Rain', pop: 80 },
+        { tempMin: 12, tempMax: 22, condition: 'Clouds', pop: 20 }
+      ]
+    }
+  }, 'C');
+
+  assert.ok(analysis.summary.includes('Changeville'));
+  assert.ok(analysis.changes.length > 0);
+  assert.ok(analysis.activities.length > 0);
+  assert.ok(analysis.precautions.length > 0);
+  assert.ok(analysis.precautions.some((item) => /rain|wind/i.test(item)));
+});
+
+test('evaluateWeatherAlerts reports current and forecast threshold matches', async () => {
+  const { evaluateWeatherAlerts } = await import('../src/services/alertService.js');
+  const alerts = evaluateWeatherAlerts({
+    current: { city: 'Alertville', temperature: 2, windSpeed: 25 },
+    forecast: { days: [{ date: '2026-10-12', tempMin: 1, tempMax: 12 }], alerts: [] }
+  }, { alertEnabled: true, minTempAlert: 5, maxWindAlert: 20 });
+
+  assert.equal(alerts.length, 3);
+  assert.ok(alerts.some((alert) => alert.type === 'cold'));
+  assert.ok(alerts.some((alert) => alert.type === 'cold-forecast' && alert.forecastFor === '2026-10-12'));
+  assert.ok(alerts.some((alert) => alert.type === 'wind'));
+  assert.deepEqual(evaluateWeatherAlerts({ current: { temperature: 2, windSpeed: 25 } }, { alertEnabled: false }), []);
+});
+
 /* ---------- alert settings (per-user preferences) ---------- */
 
 test('settingsSchema validates thresholds and coerces inputs', async () => {

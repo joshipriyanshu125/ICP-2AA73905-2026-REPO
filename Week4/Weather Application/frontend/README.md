@@ -4,7 +4,7 @@ Client for **Project 2: Weather Dashboard Application** (Week 4). Talks **only**
 
 ## Stack
 - React 18 + Vite 6
-- React Router 6 (`/` dashboard, `/auth` sign-in)
+- React Router 6 (`/` dashboard, `/auth` sign-in, `/alerts` alert center)
 - recharts for temperature + precipitation charts (lazy-loaded chunk)
 - Vanilla CSS design system — dark deep-sky theme (condition-aware accents) + minimalistic light theme
 - `fetch` API via centralized `src/api.js` client (auto `Authorization: Bearer` header)
@@ -32,6 +32,7 @@ src/
 ├── hooks/useGeolocation.js  # Geolocation hook + °C/°F, date, icon helpers
 ├── pages/
 │   ├── Dashboard.jsx    # Orchestration: fetch flows, favorites, meta, accents
+│   ├── AlertsPage.jsx   # Saved-location threshold preview + alert history
 │   └── AuthPage.jsx     # Sign in / sign up form
 └── components/
 ```
@@ -49,9 +50,10 @@ src/
 | `ForecastCharts.jsx` | Two side-by-side cards: recharts temperature curve + daily precipitation bars (code-split) |
 | `ForecastList.jsx` | Full-width multi-day rows with min — range bar — max (5 days free / 7 with One Call 3.0) |
 | `GeolocationBadge.jsx` | "Use my location" button + permission status + device accuracy badge (warns on coarse >10 km fixes) |
-| `WeatherInsights.jsx` | 3 AI weather insights card with skeleton loader (above the hourly strip) |
+| `WeatherInsights.jsx` | AI Gateway briefing: notable changes, activities, precautions, and quick takeaways |
 | `AlertBanner.jsx` | Severe-weather banner: official OWM warnings + custom per-user thresholds |
 | `AlertSettings.jsx` | Alert preferences modal (enable switch, min °C, max m/s) |
+| `AlertsPage.jsx` | Test view for saved locations plus recently detected alert history |
 | `FavoritesBar.jsx` | Saved locations quick-switcher (auth-aware sign-in prompt) |
 | `ThemeToggle.jsx` | Sun/moon dark ↔ light switch |
 | `hooks/useGeolocation.js` | Browser Geolocation hook + °C/°F and date helpers |

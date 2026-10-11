@@ -3,6 +3,9 @@ import { generateInsights } from '../services/insightsService.js';
 import { httpError } from '../middleware/errorHandler.js';
 import SearchHistory from '../models/SearchHistory.js';
 import FavoriteCity from '../models/FavoriteCity.js';
+import AlertHistory from '../models/AlertHistory.js';
+import UserSettings, { DEFAULT_SETTINGS } from '../models/UserSettings.js';
+import { alertFingerprint, evaluateWeatherAlerts } from '../services/alertService.js';
 
 const HISTORY_LIMIT = 10;
 
@@ -173,6 +176,106 @@ export async function removeFavorite(req, res, next) {
     const result = await FavoriteCity.deleteOne({ user: req.user.id, city: name });
     if (result.deletedCount === 0) throw httpError(404, `Favorite "${name}" not found.`);
     res.json({ ok: true, data: { removed: name } });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/* ---------------- saved-location alert center ---------------- */
+
+async function fetchLocationWeather(favorite) {
+  const target = favorite.coords?.lat != null && favorite.coords?.lon != null
+    ? { coords: { lat: favorite.coords.lat, lon: favorite.coords.lon } }
+    : { city: favorite.city };
+  const [current, forecast] = await Promise.all([
+    target.coords
+      ? weatherService.fetchCurrentByCoords(target.coords.lat, target.coords.lon)
+      : weatherService.fetchCurrentByCity(target.city),
+    target.coords
+      ? weatherService.fetchForecastByCoords(target.coords.lat, target.coords.lon)
+      : weatherService.fetchForecastByCity(target.city)
+  ]);
+  return { current, forecast };
+}
+
+async function recordDetectedAlert(userId, favorite, alert) {
+  const fingerprint = alertFingerprint(favorite.city, alert);
+  try {
+    await AlertHistory.findOneAndUpdate(
+      { user: userId, fingerprint },
+      {
+        $set: {
+          user: userId,
+          city: favorite.city,
+          country: favorite.country || '',
+          type: alert.type,
+          source: alert.source,
+          title: alert.title,
+          message: alert.message,
+          value: alert.value,
+          threshold: alert.threshold,
+          forecastFor: alert.forecastFor || '',
+          detectedAt: new Date(alert.detectedAt)
+        },
+        $setOnInsert: { fingerprint }
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+  } catch (err) {
+    // A history write must never make a useful preview fail.
+    console.warn('[alerts] Could not record alert history:', err.message);
+  }
+}
+
+/** Preview current and near-term threshold matches for every saved location. */
+export async function getAlertPreview(req, res, next) {
+  try {
+    const [favorites, savedSettings] = await Promise.all([
+      FavoriteCity.find({ user: req.user.id }).sort({ updatedAt: -1 }).limit(20).lean(),
+      UserSettings.findOne({ user: req.user.id }).lean()
+    ]);
+    const settings = { ...DEFAULT_SETTINGS, ...(savedSettings || {}) };
+
+    const locations = await Promise.all(favorites.map(async (favorite) => {
+      try {
+        const bundle = await fetchLocationWeather(favorite);
+        const alerts = evaluateWeatherAlerts(bundle, settings);
+        await Promise.all(alerts.map((alert) => recordDetectedAlert(req.user.id, favorite, alert)));
+        return {
+          city: favorite.city,
+          country: favorite.country || bundle.current.country || '',
+          coords: favorite.coords,
+          checkedAt: new Date().toISOString(),
+          status: alerts.length ? 'triggered' : 'clear',
+          alerts
+        };
+      } catch (err) {
+        return {
+          city: favorite.city,
+          country: favorite.country || '',
+          coords: favorite.coords,
+          checkedAt: new Date().toISOString(),
+          status: 'unavailable',
+          alerts: [],
+          error: err.message || 'Could not check this location.'
+        };
+      }
+    }));
+
+    res.json({ ok: true, data: { settings, checkedAt: new Date().toISOString(), locations } });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/** Most recently detected alerts for the authenticated user's saved locations. */
+export async function getAlertHistory(req, res, next) {
+  try {
+    const history = await AlertHistory.find({ user: req.user.id })
+      .sort({ detectedAt: -1 })
+      .limit(50)
+      .lean();
+    res.json({ ok: true, data: history });
   } catch (err) {
     next(err);
   }

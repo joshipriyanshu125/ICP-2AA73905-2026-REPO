@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Dashboard from './pages/Dashboard.jsx';
 import AuthPage from './pages/AuthPage.jsx';
+import AlertsPage from './pages/AlertsPage.jsx';
 
 /**
  * Routes:
@@ -12,6 +13,7 @@ export default function App() {
     <Routes>
       <Route path="/" element={<Dashboard />} />
       <Route path="/auth" element={<AuthPage />} />
+      <Route path="/alerts" element={<AlertsPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

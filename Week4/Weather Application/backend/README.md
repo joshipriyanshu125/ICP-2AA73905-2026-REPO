@@ -29,7 +29,7 @@ npm test                # run integration tests (no DB/key needed)
 | GET | `/api/weather/forecast?city=Pune` | Hourly strip + multi-day forecast (5-day free / 7-day with One Call 3.0) |
 | GET | `/api/weather/forecast?lat=..&lon=..` | Same, by coordinates |
 | GET | `/api/weather/search?q=Tokyo` | Geocoding suggestions (limit 5) |
-| GET | `/api/weather/insights?city=Pune&unit=C` | 3 AI weather insights (LLM when `OPENAI_API_KEY` is set, rule engine otherwise) — 10/min |
+| GET | `/api/weather/insights?city=Pune&unit=C` | AI explanation of notable changes, activities, precautions, and 3 takeaways — 10/min |
 | GET | `/api/weather/history` | Last 10 searched cities |
 | DELETE | `/api/weather/history` | Clear history |
 
@@ -41,12 +41,25 @@ npm test                # run integration tests (no DB/key needed)
 | POST | `/api/weather/favorites` | Save `{ city, country, coords, label }` (409 on duplicate) |
 | DELETE | `/api/weather/favorites/:city` | Remove one of *my* favorites (404 if absent) |
 
+### Alert center — require `Authorization: Bearer <token>`
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| GET | `/api/weather/alerts/preview` | Check every saved location against the user's current thresholds and record matches |
+| GET | `/api/weather/alerts/history` | Last 50 detected threshold or official warning events for *my* saved locations |
+
 ### Alert settings — require `Authorization: Bearer <token>` (per-user row scoping)
 
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
 | GET | `/api/settings` | *My* alert preferences (defaults before first save) |
 | PUT | `/api/settings` | Upsert `{ alertEnabled, minTempAlert °C, maxWindAlert m/s }` (zod validated) |
+
+For model-backed briefings, configure `AI_GATEWAY_API_KEY` and optionally
+`AI_GATEWAY_BASE_URL` / `AI_GATEWAY_MODEL` (defaults to Vercel AI Gateway and
+`openai/gpt-4o-mini`). `OPENAI_API_KEY`, `OPENAI_BASE_URL`, and `OPENAI_MODEL`
+remain supported as a compatible fallback. If no model is configured or the
+model is unavailable, the endpoint uses deterministic local analysis.
 
 ### Auth
 

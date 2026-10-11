@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { api } from '../api.js';
 
 /**
- * AI weather insights — 3 brief, actionable recommendations.
+ * AI weather briefing — explains notable changes and turns them into
+ * practical activities and precautions, alongside three quick takeaways.
  * Shows a skeleton while the request is in flight; hides itself entirely
  * if insights can't be loaded (never breaks the dashboard).
  */
@@ -40,16 +41,38 @@ export default function WeatherInsights({ target, unit }) {
 
   if (state.status !== 'ready' || !state.data?.insights?.length) return null;
 
-  const { insights, source, city } = state.data;
+  const { insights, source, city, summary, changes, activities, precautions } = state.data;
+
+  const groups = [
+    { key: 'changes', title: 'What is changing', icon: '↗️', items: changes },
+    { key: 'activities', title: 'Good plans', icon: '🌤️', items: activities },
+    { key: 'precautions', title: 'Keep in mind', icon: '🧭', items: precautions }
+  ].filter((group) => Array.isArray(group.items) && group.items.length);
 
   return (
     <section className="insights-card" aria-label="Weather insights">
       <header className="insights-head">
-        <h2>✨ Weather insights</h2>
+        <div>
+          <h2>✨ AI weather briefing</h2>
+          {summary && <p className="insights-summary">{summary}</p>}
+        </div>
         <span className={`insights-tag insights-tag--${source}`}>
-          {source === 'llm' ? 'AI-generated' : 'Smart forecast tips'}
+          {source === 'llm' ? 'AI Gateway' : 'Smart forecast fallback'}
         </span>
       </header>
+      {groups.length > 0 && (
+        <div className="insights-groups">
+          {groups.map((group) => (
+            <section className="insights-group" key={group.key}>
+              <h3><span aria-hidden="true">{group.icon}</span>{group.title}</h3>
+              <ul>
+                {group.items.map((text, i) => <li key={`${group.key}-${i}`}>{text}</li>)}
+              </ul>
+            </section>
+          ))}
+        </div>
+      )}
+      <h3 className="insights-takeaways-title">Quick takeaways</h3>
       <ul className="insights-list">
         {insights.map((text, i) => (
           <li key={i}>

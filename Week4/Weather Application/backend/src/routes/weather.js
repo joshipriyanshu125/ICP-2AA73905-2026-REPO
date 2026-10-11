@@ -12,7 +12,9 @@ import {
   clearHistory,
   getFavorites,
   addFavorite,
-  removeFavorite
+  removeFavorite,
+  getAlertPreview,
+  getAlertHistory
 } from '../controllers/weatherController.js';
 
 const router = Router();
@@ -32,5 +34,9 @@ router.delete('/history', clearHistory);
 router.get('/favorites', requireAuth, getFavorites);
 router.post('/favorites', requireAuth, addFavorite);
 router.delete('/favorites/:city', requireAuth, removeFavorite);
+
+/* Saved-location alert center — both views are scoped to the signed-in user. */
+router.get('/alerts/preview', weatherLimiter, requireAuth, getAlertPreview);
+router.get('/alerts/history', requireAuth, getAlertHistory);
 
 export default router;

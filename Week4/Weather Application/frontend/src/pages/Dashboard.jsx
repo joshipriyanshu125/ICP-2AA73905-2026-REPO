@@ -209,9 +209,9 @@ export default function Dashboard() {
           <button
             type="button"
             className="icon-btn"
-            onClick={() => setAlertsOpen(true)}
-            aria-label="Alert settings"
-            title="Alert settings"
+            onClick={() => (user ? navigate('/alerts') : setAlertsOpen(true))}
+            aria-label={user ? 'Open alert center' : 'Alert settings'}
+            title={user ? 'Alert center' : 'Alert settings'}
           >
             🔔
           </button>

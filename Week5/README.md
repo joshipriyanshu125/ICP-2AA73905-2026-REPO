@@ -1,3 +1,4 @@
+
 # Week 5: Project 2 Completion — Weather Dashboard Application
 
 ## Intern Career Path — Web Development

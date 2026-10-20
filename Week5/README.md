@@ -11,12 +11,15 @@
 
 ## 📋 Overview
 
-Week 5 is the **Project 2 completion week**. The Weather Dashboard Application was started in Week 4 (external API integration, asynchronous data fetching, and data visualization). This week closes every remaining gap so that Project 2 ships with **full functionality**, then hardens it with resilience, accessibility, performance, and expanded automated testing.
+Week 5 is the **Project 2 completion week**. The Weather Dashboard Application was implemented end-to-end in Week 4 — external API integration, asynchronous data fetching, data visualization, authentication, AI insights, and severe-weather alerts. Week 5 verifies that implementation against the syllabus, records the final feature inventory, runs the automated suite, and delivers the completion report and production deployment guide.
+
+> **Scope note:** Week 5 does **not** add new application source code. The Project 2 codebase remains in [`Week4/Weather Application/`](../Week4/Weather%20Application/), and every document in this folder describes that as-built implementation. Planned enhancements that were **not** implemented — Air Quality Index, offline detection, retry/backoff, and PWA caching — are listed as future work, not as completed features.
 
 Work builds directly on:
 
-- [`Week4/README.md`](../Week4/README.md) — Project 2 baseline (started)
-- [`Week4/documentation.md`](../Week4/documentation.md) — full technical documentation of the baseline
+- [`Week4/README.md`](../Week4/README.md) — Project 2 implementation summary and getting-started guide
+- [`Week4/documentation.md`](../Week4/documentation.md) — full baseline technical documentation
+- [`Week4/deployment-guide.md`](../Week4/deployment-guide.md) — original deployment plan
 - [`Week2/documentation.md`](../Week2/documentation.md) — core architectural patterns (Project 1)
 - [`Week3/project-1-completion-report.md`](../Week3/project-1-completion-report.md) — the completion-report format reused below
 
@@ -34,17 +37,27 @@ Work builds directly on:
 
 | Target Task | Status | Implementation Details |
 | :--- | :---: | :--- |
-| **Complete Project 2 Core Scope** | ✅ Complete | Every Week 4 feature verified end-to-end and signed off — see [`project-2-completion-report.md`](project-2-completion-report.md) |
-| **Offline Detection** | ✅ Complete | `useOnlineStatus` hook + `OfflineBanner.jsx` — global connection banner, auto-refresh on reconnect |
-| **Retry with Backoff** | ✅ Complete | Exponential backoff (3 attempts, 300 ms → 1.2 s) for transient 5xx/network failures in `api.js` and the server-side weather fetch wrapper |
-| **Stale-Response Guards** | ✅ Complete | Request cancellation (`AbortController`) + sequence tokens so out-of-order search results never clobber newer input |
-| **Loading & Error States** | ✅ Complete | Skeleton loaders, inline retry buttons, friendly empty states on every data surface |
-| **Accessibility Audit** | ✅ Complete | Keyboard traversal, visible focus rings, skip-to-content link, ARIA labels/live regions, contrast ≥ 4.5:1, `prefers-reduced-motion` support |
-| **Air Quality Index (AQI)** | ✅ Complete | New `/api/weather/air` endpoint (OWM Air Pollution API) + AQI tile with pollutant breakdown (PM2.5, PM10, O₃, NO₂) |
-| **Session & Profile Polish** | ✅ Complete | Silent session restore, 401 auto-redirect, sign-out everywhere, per-user settings persistence |
-| **Test Coverage Expansion** | ✅ Complete | **40 automated tests** (22 baseline + 18 new: backoff, offline handling, air quality normalization, error taxonomy) |
-| **Documentation & Report** | ✅ Complete | This README, full documentation update, completion report, and production-readiness deployment guide |
-| **Production Readiness** | ✅ Complete | Environment matrix, smoke-test script, health checks, rollback plan — go-live scheduled for Week 6 |
+| **Complete Project 2 Core Scope** | ✅ Complete | Full feature set delivered in Week 4 and verified against the source — see [`project-2-completion-report.md`](project-2-completion-report.md) |
+| **OpenWeatherMap Integration** | ✅ Complete | Server-side proxy for current conditions, 5-day/3-hour forecast, geocoding, and optional One Call 3.0 (7-day + official alerts) |
+| **City Search with Geocoding** | ✅ Complete | Debounced, keyboard-navigable suggestions via OWM Geocoding API, plus free-text submit and recent-search chips |
+| **Current Conditions Card** | ✅ Complete | Temperature, feels-like, humidity, wind, pressure, visibility, sunrise/sunset |
+| **Stat Tiles** | ✅ Complete | Supplementary humidity, wind, pressure, visibility, sunrise, and sunset tiles |
+| **Hourly Forecast Strip** | ✅ Complete | Next 24 hours in 3-hour slots (up to 9), icons and rain probability |
+| **Forecast Charts** | ✅ Complete | recharts temperature area curve + daily precipitation bars, lazy-loaded |
+| **Multi-Day Forecast** | ✅ Complete | 5 days on the free OWM plan; 7 days when One Call 3.0 is available |
+| **AI Weather Insights** | ✅ Complete | LLM briefing when an AI key is configured, with a deterministic rule-engine fallback that never fails |
+| **Severe-Weather Alerts** | ✅ Complete | Official One Call 3.0 warnings + custom temperature/wind thresholds, alert preview and history |
+| **Browser Geolocation** | ✅ Complete | Fresh high-accuracy fix, permission state handling, relaxed retry, accuracy badge |
+| **Saved Locations + Auth** | ✅ Complete | Email/password sign-in (bcrypt + JWT), favorites scoped per user |
+| **Search History** | ✅ Complete | Last 10 searched cities stored in MongoDB and shown as chips |
+| **Dark / Light Mode** | ✅ Complete | Deep-sky dark theme with condition-aware accents + minimalistic light theme |
+| **Head Metadata** | ✅ Complete | Per-route title, description, and Open Graph tags |
+| **Alert Center** | ✅ Complete | `/alerts` page with saved-location threshold preview and alert history |
+| **Documentation & Tests** | ✅ Complete | Technical docs, completion report, deployment guide, and **22 automated tests** (22/22 passing) |
+| **Production Readiness** | ✅ Complete | Environment matrix, smoke tests, health checks, and rollback plan finalized — live deployment scheduled for Week 6 |
+| **Air Quality Index** | ⏳ Deferred | Planned Week 6 extension; not present in the Week 4 codebase |
+| **Offline Detection / Retry with Backoff** | ⏳ Deferred | Future hardening; the current client shows a friendly network error without automatic retry |
+| **PWA / Animated Backgrounds** | ⏳ Deferred | Planned optional enhancements for Week 6 |
 
 ---
 
@@ -52,61 +65,80 @@ Work builds directly on:
 
 ```
 Week5/
-├── README.md                        # This file — week summary and getting-started guide
-├── documentation.md                 # Week 5 technical documentation (resilience, a11y, AQI, tests)
+├── README.md                        # This file — completion summary and getting-started guide
+├── documentation.md                 # Technical documentation of the as-built Project 2
 ├── project-2-completion-report.md   # Project 2 comprehensive completion report
-├── deployment-guide.md              # Production readiness & go-live verification guide
-└── (Project 2 source code lives in Week4/Weather Application/)
-    ├── backend/                     # Express + Mongoose API (extended in Week 5)
-    │   ├── src/routes/air.js        # 🆕 Air quality endpoint
-    │   ├── src/services/weatherService.js  # + AQI normalization, retry/backoff wrapper
-    │   └── tests/api.test.js        # 40 tests (22 → 40)
-    └── frontend/                    # React + Vite SPA (extended in Week 5)
-        └── src/
-            ├── hooks/useOnlineStatus.js   # 🆕 Network state hook
-            ├── components/OfflineBanner.jsx # 🆕 Global offline banner
-            └── api.js                     # + AbortController, retry with backoff
-```
+└── deployment-guide.md              # Production readiness & go-live verification guide
 
-> **Note:** Week 5 is a documentation and hardening week. Source changes are committed into the existing `Week4/Weather Application/` tree so Project 2 remains a single, coherent codebase; this folder holds the week's reports and guides.
+Week4/Weather Application/           # Project 2 source code (implemented in Week 4)
+├── backend/                         # Express + Mongoose API
+│   ├── package.json                 # express, mongoose, zod, bcryptjs, jsonwebtoken, express-rate-limit
+│   ├── README.md                    # Backend API reference
+│   ├── src/
+│   │   ├── server.js                # Entry point — /api/auth, /api/weather, /api/settings, /health
+│   │   ├── config/db.js             # Mongoose connection
+│   │   ├── models/                  # User, SearchHistory, FavoriteCity, UserSettings, AlertHistory
+│   │   ├── routes/                  # auth.js, weather.js, settings.js
+│   │   ├── controllers/             # authController, weatherController, settingsController
+│   │   ├── services/                # weatherService, insightsService, alertService
+│   │   └── middleware/              # auth, validate, schemas, errorHandler, rateLimiter
+│   └── tests/api.test.js            # 22 automated tests (node:test, no live API or DB required)
+└── frontend/                        # React + Vite SPA
+    ├── package.json                 # react 18, react-router-dom 6, recharts 2, vite 5
+    ├── vite.config.js               # Dev proxy: /api & /health → :5000
+    ├── index.html                   # SPA entry point
+    └── src/
+        ├── main.jsx                 # Providers: Theme → Auth → Router
+        ├── App.jsx                  # Routes: /, /auth, /alerts
+        ├── api.js                   # Centralized API client (auto JWT header)
+        ├── index.css                # Dark + light design system
+        ├── context/                 # ThemeContext, AuthContext
+        ├── hooks/useGeolocation.js  # Geolocation + formatting helpers
+        ├── pages/                   # Dashboard, AuthPage, AlertsPage
+        └── components/              # Search, weather cards, charts, insights, alerts, favorites, theme
+```
 
 ---
 
 ## ✅ Project 2 — Final Feature Checklist
 
 ### Data & Integration
-- [x] Server-side OpenWeatherMap proxy (key never reaches the browser)
-- [x] Current conditions, 5-day/3-hour forecast, geocoding search
-- [x] Hourly strip (next 24 h) + multi-day forecast list
-- [x] recharts temperature curve + precipitation probability chart
-- [x] Air Quality Index with pollutant breakdown
-- [x] In-memory TTL cache + 3-tier rate limiting
+- [x] Server-side OpenWeatherMap proxy (API key never reaches the browser)
+- [x] Current conditions, 5-day/3-hour forecast, and geocoding search
+- [x] Optional One Call 3.0 upgrade (7-day forecast + official severe-weather alerts)
+- [x] Hourly strip (next 24 hours) + multi-day forecast list
+- [x] recharts temperature curve + daily precipitation probability chart (lazy-loaded)
+- [x] In-memory TTL cache (600 s default) to protect free-tier quota
+- [x] Three rate-limiter tiers (weather, insights, auth) and 8 s upstream timeouts
 
 ### Intelligence & Alerts
-- [x] AI weather insights (LLM with deterministic rule-engine fallback)
-- [x] Custom temperature/wind threshold alerts
-- [x] Official One Call 3.0 warnings (progressive enhancement)
-- [x] Alert history (deduplicated by fingerprint)
+- [x] AI weather briefing (LLM via AI Gateway/OpenAI-compatible endpoint)
+- [x] Deterministic rule-engine fallback with a 10-minute LLM cooldown
+- [x] Custom per-user temperature and wind thresholds
+- [x] Official One Call 3.0 warnings (when the key has access)
+- [x] Alert preview across saved locations + deduplicated alert history
 
 ### Accounts & Personalization
-- [x] Email/password auth (bcrypt + JWT), silent session restore
-- [x] Per-user saved locations, search history, alert settings
-- [x] °C ↔ °F unit toggle (persisted)
+- [x] Email/password auth (bcrypt + JWT), silent session restore via `GET /api/auth/me`
+- [x] Per-user saved locations and alert settings
+- [x] Shared search history (last 10 cities) stored in MongoDB
+- [x] °C ↔ °F toggle (persisted in `localStorage`)
 - [x] Dark / light theme with condition-aware accents
 
-### Resilience, Accessibility & Quality (Week 5)
-- [x] Offline detection + auto-recovery banner
-- [x] Retry with exponential backoff for transient failures
-- [x] Stale-response guards on search
-- [x] Skeleton loaders, retry buttons, empty states
-- [x] Keyboard navigation, ARIA labels, live regions, contrast pass
-- [x] Per-route head metadata (title/description/og)
-- [x] 40 automated tests — 100% pass rate
+### UI & Quality
+- [x] Geolocation on load with permission/accuracy handling
+- [x] Loading skeleton, friendly error banner, and empty-state prompts
+- [x] Keyboard-navigable search suggestions and ARIA labels on icon-only controls
+- [x] Per-route head metadata (title, description, Open Graph)
+- [x] **22 automated tests — 22/22 passing**
 
-### Deferred to Week 6 (optional enhancements)
+### Deferred to Week 6 / Future Work
+- [ ] Air Quality Index endpoint and tile
+- [ ] Offline detection and automatic retry with exponential backoff
+- [ ] Stale-response guards / request cancellation across dashboard fetches
 - [ ] PWA manifest + offline weather caching
 - [ ] Animated condition backgrounds
-- [ ] Live production deployment (Vercel + Render) — guide already finalized in [`deployment-guide.md`](deployment-guide.md)
+- [ ] Live production deployment (Vercel + Render) — guide finalized in [`deployment-guide.md`](deployment-guide.md)
 
 ---
 
@@ -121,9 +153,11 @@ Week5/
 
 ### Installation
 
+Project 2 source lives in `Week4/Weather Application/`.
+
 ```bash
 git clone https://github.com/joshipriyanshu125/ICP-2AA73905-2026-REPO.git
-cd ICP-2AA73905-2026-REPO/Week4   # Project 2 source lives here
+cd ICP-2AA73905-2026-REPO/Week4
 
 # Terminal 1 — backend
 cd "Weather Application/backend"
@@ -136,23 +170,49 @@ npm install
 npm run dev        # → http://localhost:5173
 ```
 
-### Required backend `.env`
+### Backend `.env`
+
+Create `Week4/Weather Application/backend/.env`:
 
 ```env
 PORT=5000
-MONGODB_URI=mongodb+srv://... or mongodb://127.0.0.1:27017/weather_dashboard
+MONGODB_URI=mongodb://127.0.0.1:27017/weather_dashboard
 WEATHER_API_KEY=your_openweathermap_api_key
 CLIENT_ORIGIN=http://localhost:5173
 JWT_SECRET=a_long_random_string
-# Optional: OPENAI_API_KEY / AI_GATEWAY_API_KEY for LLM insights
+JWT_EXPIRES_IN=7d
+
+# Optional — AI weather briefing (rule engine used when absent)
+AI_GATEWAY_API_KEY=
+AI_GATEWAY_BASE_URL=https://ai-gateway.vercel.sh/v1
+AI_GATEWAY_MODEL=openai/gpt-4o-mini
+
+# Alternative direct OpenAI configuration
+# OPENAI_API_KEY=sk-...
+# OPENAI_BASE_URL=https://api.openai.com/v1
+# OPENAI_MODEL=gpt-4o-mini
+
+# Optional — override the weather API base URL (testing only)
+# OPENWEATHER_BASE_URL=https://api.openweathermap.org/data/2.5
 ```
+
+> One Call 3.0 uses the same `WEATHER_API_KEY`. If the key is not subscribed,
+> the backend silently falls back to the free 5-day forecast.
 
 ### Running Tests
 
 ```bash
 cd "Weather Application/backend"
 npm test
-# → 40 tests, 40 pass (node:test — no live API or DB required)
+# → 22 tests, 22 pass (node:test — no live API or database required)
+```
+
+### Production Build
+
+```bash
+cd "Weather Application/frontend"
+npm run build
+# → dist/ (main bundle + lazy-loaded charts chunk)
 ```
 
 ---
@@ -162,13 +222,14 @@ npm test
 | Layer | Technologies |
 | :--- | :--- |
 | **Frontend** | React 18, React Router 6, Vite 5, recharts 2 (lazy-loaded), vanilla CSS design system |
-| **Backend** | Node.js 18+ (ES Modules), Express 4, Mongoose 8, zod, bcryptjs + jsonwebtoken |
+| **Backend** | Node.js 18+ (ES Modules), Express 4, Mongoose 8, zod 3, bcryptjs + jsonwebtoken |
 | **Database** | MongoDB — `users`, `searchhistories`, `favoritecities`, `usersettings`, `alerthistories` |
-| **External APIs** | OpenWeatherMap — Current, Forecast, Geocoding, Air Pollution, One Call 3.0 (optional) |
-| **AI Layer** | OpenAI-compatible chat completions + deterministic rule-engine fallback |
-| **Resilience** | Retry with exponential backoff, `AbortController` timeouts, offline detection, TTL cache |
-| **Quality** | `node:test` — 40 tests; accessibility audit; per-route meta/og tags |
-| **Build** | Vite 5 (dev proxy for `/api` + `/health`) |
+| **External APIs** | OpenWeatherMap — Current Weather, 5-day Forecast, Geocoding, One Call 3.0 (optional) |
+| **AI Layer** | OpenAI-compatible chat completions (Vercel AI Gateway or OpenAI) + deterministic rule-engine fallback |
+| **Resilience** | 8 s upstream timeouts, TTL cache, upstream error mapping, LLM/One Call circuit breakers |
+| **Security** | JWT Bearer auth, bcrypt hashing, zod validation, tiered rate limiting, server-side API key |
+| **Testing** | Node.js built-in test runner (`node:test`) — 22 tests, 22 pass, zero extra dependencies |
+| **Build Tool** | Vite 5 (dev proxy for `/api` + `/health`; production build to `dist/`) |
 
 ---
 
@@ -176,23 +237,23 @@ npm test
 
 | Method | Route | Auth | Description |
 | :--- | :--- | :---: | :--- |
-| `GET` | `/health` | — | Server + DB status check |
+| `GET` | `/health` | — | Server + DB + weather-key status |
 | `POST` | `/api/auth/signup` | — | Register with name, email, password |
-| `POST` | `/api/auth/login` | — | Sign in, receive JWT |
+| `POST` | `/api/auth/signin` | — | Sign in and receive a JWT |
+| `GET` | `/api/auth/me` | ✅ | Current profile from the Bearer token |
 | `GET` | `/api/weather/current` | — | Current conditions (city or lat/lon) |
 | `GET` | `/api/weather/forecast` | — | Hourly strip + daily forecast |
 | `GET` | `/api/weather/search` | — | Geocoding suggestions |
-| `GET` | `/api/weather/insights` | — | AI/rule-engine insights |
-| `GET` | `/api/weather/air` 🆕 | — | Air Quality Index + pollutant breakdown |
-| `GET` | `/api/weather/history` | — | Recent search history |
+| `GET` | `/api/weather/insights` | — | AI/rule-engine weather briefing |
+| `GET` | `/api/weather/history` | — | Recent search history (last 10) |
 | `DELETE` | `/api/weather/history` | — | Clear search history |
-| `GET` | `/api/weather/favorites` | ✅ | List saved cities |
+| `GET` | `/api/weather/favorites` | ✅ | List saved cities for the signed-in user |
 | `POST` | `/api/weather/favorites` | ✅ | Save a city |
 | `DELETE` | `/api/weather/favorites/:city` | ✅ | Remove a saved city |
 | `GET` | `/api/weather/alerts/preview` | ✅ | Live alert check across saved cities |
-| `GET` | `/api/weather/alerts/history` | ✅ | Stored alert history |
-| `GET` | `/api/settings` | ✅ | Get alert preferences |
-| `PUT` | `/api/settings` | ✅ | Update alert thresholds |
+| `GET` | `/api/weather/alerts/history` | ✅ | Stored alert history for the signed-in user |
+| `GET` | `/api/settings` | ✅ | Get per-user alert preferences |
+| `PUT` | `/api/settings` | ✅ | Update alert thresholds (temperature + wind) |
 
 ---
 
@@ -200,7 +261,7 @@ npm test
 
 | Document | Description |
 | :--- | :--- |
-| [`documentation.md`](documentation.md) | Week 5 technical documentation |
+| [`documentation.md`](documentation.md) | Technical documentation of the as-built Project 2 |
 | [`project-2-completion-report.md`](project-2-completion-report.md) | Project 2 comprehensive completion report |
 | [`deployment-guide.md`](deployment-guide.md) | Production readiness & go-live verification |
 | [`../Week4/documentation.md`](../Week4/documentation.md) | Project 2 baseline documentation |
@@ -212,9 +273,9 @@ npm test
 
 | Week | Focus | Deliverables |
 | :--- | :--- | :--- |
-| **Week 4 (done)** | API integration + dashboard | Proxy, auth, geocoding, charts, alerts, 22 tests |
-| **Week 5 (done)** | Project 2 completion | Resilience, accessibility, AQI, polish, 40 tests, completion report |
-| **Week 6** | Release + next project | Live deployment (Vercel + Render), optional PWA/animations, **Project 3** kickoff for strong students |
+| **Week 4 (done)** | Project 2 implementation | Weather proxy, auth, geocoding, hourly/daily forecast, charts, AI insights, alerts, favorites, themes, 22 tests |
+| **Week 5 (done)** | Project 2 completion | Feature verification, completion report, technical documentation, deployment readiness guide |
+| **Week 6** | Release + next project | Live deployment (Vercel + Render), optional AQI / offline handling / PWA enhancements, **Project 3** kickoff for strong students |
 
 ---
 
@@ -223,4 +284,4 @@ npm test
 - **Repository:** [ICP-2AA73905-2026-REPO](https://github.com/joshipriyanshu125/ICP-2AA73905-2026-REPO.git)
 - **Portal ID:** `ICP-2AA73905-2026`
 - **Internship Track:** Web Development Self-Learning Program
-- **Module:** Week 5 — Project 2 Completion (Resilience, Accessibility & Quality)
+- **Module:** Week 5 — Project 2 Completion (Verification, Documentation & Deployment Readiness)

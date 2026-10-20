@@ -15,7 +15,7 @@
 | [**Week 2**](https://github.com/joshipriyanshu125/ICP-2AA73905-2026-REPO/blob/main/Week2/README.md) | Core Engineering & Architecture | Implementation phase breakdown, research methodology, core MERN functional backend architecture, and TaskFlow codebase. |
 | [**Week 3**](https://github.com/joshipriyanshu125/ICP-2AA73905-2026-REPO/blob/main/Week3/README.md) | Project 1 Completion & Deployment | **TaskFlow Full Completion**: Polished UI/UX (List & Calendar Views), Status Metric Cards, Redis Pub/Sub + Socket.IO real-time synchronization, 14/14 test pass suite, and production deployment guide. |
 | [**Week 4**](https://github.com/joshipriyanshu125/ICP-2AA73905-2026-REPO/blob/main/Week4/README.md) | Project 2 Start — Weather Dashboard | **Weather Dashboard (MERN)**: OpenWeatherMap API integration (current, forecast, geocoding), current conditions card, hourly strip, recharts charts, multi-day forecast, geolocation search, JWT auth with per-user saved locations, dark/light themes, search history in MongoDB, server-side API proxy, and deployment guide. |
-| [**Week 5**](https://github.com/joshipriyanshu125/ICP-2AA73905-2026-REPO/blob/main/Week5/README.md) | Project 2 Completion — Weather Dashboard | **Weather Dashboard Full Completion**: offline detection + retry/backoff resilience, stale-response guards, loading/error states, accessibility audit, Air Quality Index endpoint, 40/40 test pass suite, comprehensive completion report, and production-readiness deployment guide. |
+| [**Week 5**](https://github.com/joshipriyanshu125/ICP-2AA73905-2026-REPO/blob/main/Week5/README.md) | Project 2 Completion — Weather Dashboard | **Weather Dashboard Completion & Live Deployment**: verified Week 4 MERN implementation (OpenWeatherMap proxy, geocoding search, hourly/multi-day forecasts, charts, AI insights with rule-engine fallback, severe-weather alerts, per-user favorites, dark/light themes), 22/22 test pass suite, comprehensive completion report, production deployment guide, and **live deployment on Vercel + Render**. |
 
 ---
 
@@ -39,7 +39,7 @@
 
 ---
 
-## 🌤️ Project 2: Weather Dashboard Application (Weeks 4–5 — Complete)
+## 🌤️ Project 2: Weather Dashboard Application (Weeks 4–5 — Complete & Deployed)
 
 - **Frontend:** React 18, Vite 6, React Router, recharts (code-split), vanilla CSS design system — dark deep-sky theme (condition-aware accents) + minimalistic light theme.
 - **Backend:** Node.js (ES Modules), Express, Mongoose, zod validation, bcrypt + JWT — proxies OpenWeatherMap so the API key stays server-side.
@@ -47,7 +47,13 @@
 - **External API:** OpenWeatherMap (current weather, 5-day/3-hour forecast, geocoding; optional One Call 3.0 for 7-day).
 - **Data Flow:** `React UI → /api/weather/* → weatherService → OpenWeatherMap → normalized view model → MongoDB`.
 - **Auth Flow:** `Sign up (/auth) → bcrypt hash → JWT → Bearer header → favorites scoped by user id`.
-- **Tests:** 40/40 passing as of Week 5 — 22 at Week 4 completion, +18 added in Week 5 (`backend: npm test`).
+- **Tests:** 22/22 passing (`backend: npm test`) — full suite delivered with Project 2 in Week 4 and verified for Week 5 completion.
+
+### 🌐 Live Deployment
+
+- **Frontend:** [https://weather-application-frontend-seven.vercel.app/](https://weather-application-frontend-seven.vercel.app/)
+- **Backend API:** [https://weather-application-s73i.onrender.com/](https://weather-application-s73i.onrender.com/)
+- **Health Check:** [https://weather-application-s73i.onrender.com/health](https://weather-application-s73i.onrender.com/health)
 
 ### Quick Navigation
 

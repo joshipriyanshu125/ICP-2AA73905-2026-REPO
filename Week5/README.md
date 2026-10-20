@@ -6,12 +6,13 @@
 **Repository:** ICP-2AA73905-2026-REPO
 **Internship Week:** Week 5
 **Project:** Weather Dashboard Application (Project 2) — **Completion Week**
+**Status:** ✅ **Deployed live** — Vercel (frontend) + Render (backend)
 
 ---
 
 ## 📋 Overview
 
-Week 5 is the **Project 2 completion week**. The Weather Dashboard Application was implemented end-to-end in Week 4 — external API integration, asynchronous data fetching, data visualization, authentication, AI insights, and severe-weather alerts. Week 5 verifies that implementation against the syllabus, records the final feature inventory, runs the automated suite, and delivers the completion report and production deployment guide.
+Week 5 is the **Project 2 completion week**. The Weather Dashboard Application was implemented end-to-end in Week 4 — external API integration, asynchronous data fetching, data visualization, authentication, AI insights, and severe-weather alerts. Week 5 verifies that implementation against the syllabus, records the final feature inventory, runs the automated suite, and delivers the completion report, production deployment guide, and **live production deployment**.
 
 > **Scope note:** Week 5 does **not** add new application source code. The Project 2 codebase remains in [`Week4/Weather Application/`](../Week4/Weather%20Application/), and every document in this folder describes that as-built implementation. Planned enhancements that were **not** implemented — Air Quality Index, offline detection, retry/backoff, and PWA caching — are listed as future work, not as completed features.
 
@@ -25,6 +26,19 @@ Work builds directly on:
 
 ---
 
+## 🌐 Live Deployment
+
+| Service | Platform | Live URL | Status |
+| :--- | :--- | :--- | :---: |
+| **Frontend** | Vercel | [https://weather-application-frontend-seven.vercel.app/](https://weather-application-frontend-seven.vercel.app/) | ✅ Live |
+| **Backend API** | Render | [https://weather-application-s73i.onrender.com/](https://weather-application-s73i.onrender.com/) | ✅ Live |
+| **Health check** | Render | [https://weather-application-s73i.onrender.com/health](https://weather-application-s73i.onrender.com/health) | ✅ `200 OK` |
+| **Database** | MongoDB Atlas | _cluster private_ | ✅ Connected |
+
+> **Verified 20 October 2026:** `/health` returns `200 OK` with `database: "connected"` and `weatherApi: "configured"`; `/api/weather/current`, `/forecast`, `/search`, and `/insights` return `200`; protected routes return `401` without a token; and the production frontend origin is allowed by CORS. Render free-tier services may take 20–60 s to wake after inactivity.
+
+---
+
 ## 🎯 Objectives & Deliverables
 
 **Task (Week 5 syllabus):**
@@ -33,7 +47,7 @@ Work builds directly on:
 
 **Deliverables:**
 - Completed Project 2
-- Completion report, updated documentation, and deployment readiness guide
+- Completion report, updated documentation, deployment guide, and **live production deployment**
 
 | Target Task | Status | Implementation Details |
 | :--- | :---: | :--- |
@@ -54,7 +68,7 @@ Work builds directly on:
 | **Head Metadata** | ✅ Complete | Per-route title, description, and Open Graph tags |
 | **Alert Center** | ✅ Complete | `/alerts` page with saved-location threshold preview and alert history |
 | **Documentation & Tests** | ✅ Complete | Technical docs, completion report, deployment guide, and **22 automated tests** (22/22 passing) |
-| **Production Readiness** | ✅ Complete | Environment matrix, smoke tests, health checks, and rollback plan finalized — live deployment scheduled for Week 6 |
+| **Production Readiness** | ✅ Complete | Environment matrix, smoke tests, health checks, and rollback plan finalized — **deployed live on Vercel + Render and verified** |
 | **Air Quality Index** | ⏳ Deferred | Planned Week 6 extension; not present in the Week 4 codebase |
 | **Offline Detection / Retry with Backoff** | ⏳ Deferred | Future hardening; the current client shows a friendly network error without automatic retry |
 | **PWA / Animated Backgrounds** | ⏳ Deferred | Planned optional enhancements for Week 6 |
@@ -132,13 +146,20 @@ Week4/Weather Application/           # Project 2 source code (implemented in Wee
 - [x] Per-route head metadata (title, description, Open Graph)
 - [x] **22 automated tests — 22/22 passing**
 
+### Deployment
+- [x] Frontend deployed on Vercel — [weather-application-frontend-seven.vercel.app](https://weather-application-frontend-seven.vercel.app/)
+- [x] Backend API deployed on Render — [weather-application-s73i.onrender.com](https://weather-application-s73i.onrender.com/)
+- [x] MongoDB Atlas connected in production
+- [x] CORS `CLIENT_ORIGIN` matches the deployed frontend origin
+- [x] `/health` and live weather endpoint verified (`200 OK`, valid JSON)
+- [x] Full go-live checklist recorded in [`deployment-guide.md`](deployment-guide.md)
+
 ### Deferred to Week 6 / Future Work
 - [ ] Air Quality Index endpoint and tile
 - [ ] Offline detection and automatic retry with exponential backoff
 - [ ] Stale-response guards / request cancellation across dashboard fetches
 - [ ] PWA manifest + offline weather caching
 - [ ] Animated condition backgrounds
-- [ ] Live production deployment (Vercel + Render) — guide finalized in [`deployment-guide.md`](deployment-guide.md)
 
 ---
 
@@ -274,8 +295,8 @@ npm run build
 | Week | Focus | Deliverables |
 | :--- | :--- | :--- |
 | **Week 4 (done)** | Project 2 implementation | Weather proxy, auth, geocoding, hourly/daily forecast, charts, AI insights, alerts, favorites, themes, 22 tests |
-| **Week 5 (done)** | Project 2 completion | Feature verification, completion report, technical documentation, deployment readiness guide |
-| **Week 6** | Release + next project | Live deployment (Vercel + Render), optional AQI / offline handling / PWA enhancements, **Project 3** kickoff for strong students |
+| **Week 5 (done)** | Project 2 completion | Feature verification, completion report, technical documentation, deployment readiness guide, and **live deployment (Vercel + Render)** |
+| **Week 6** | Release hardening + next project | Optional AQI / offline handling / PWA enhancements and **Project 3** kickoff for strong students |
 
 ---
 

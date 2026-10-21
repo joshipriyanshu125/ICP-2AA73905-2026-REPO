@@ -1,4 +1,4 @@
-# Week 6 — Portfolio
+# Week 6 — Priyanshu Joshi’s Portfolio
 
 A fresh React + Vite portfolio, rebuilt from an empty source directory using
 [rbp-portfolio.vercel.app](https://rbp-portfolio.vercel.app/) as the visual reference.
@@ -21,46 +21,60 @@ npm run dev -- --port 5176 --strictPort
 
 ## Included
 
-- **Home:** two-column introduction and grayscale portrait, four project previews,
-  project navigation, and a shared contact footer.
-- **Projects:** six previews in a responsive two-column masonry layout.
-- **About:** flip-over photo cards, biography, expandable experience, education,
-  skill tags, and draggable/keyboard-movable tool chips with a reset control.
+- **Home:** Priyanshu’s introduction, a monochrome PJ monogram, three repository
+  projects, project navigation, and a shared contact footer.
+- **Projects:** TaskFlow (Weeks 2–3), Weather Dashboard (Weeks 4–5), and Personal
+  Portfolio (Week 6), with technology tags and source-code links. TaskFlow and
+  Weather Dashboard also link to the live frontends documented in this repository.
+- **About:** résumé-based biography, independent project experience, education
+  with grades and coursework, What I do, a draggable tool stack, grouped technical
+  skills, soft skills, certifications, and achievements. Decorative flip cards
+  retain the reference layout without claiming stock photography is personal.
 - Floating navigation, persistent dark/light themes, responsive layouts, hover
   treatments, scroll reveals, a recreated animated grayscale background, and
   reduced-motion support.
 - Keyboard focus styles, a skip link, real route URLs, a not-found screen,
   clipboard error handling, and local image fallbacks.
 
-## Add your information later
+## Profile and project content
 
 Edit **`portfolio/src/data/portfolio.js`**. This is the single content file:
 
 | Export | Content |
 | --- | --- |
-| `profile` | Name, headline, introduction, portrait, email, social URLs, contact text |
-| `projects` | Titles, summaries, artwork, roles, dates, project URLs |
-| `about` | Biography, experience, education, skills, tool stack, photo cards |
+| `profile` | Name, headline, introduction, location, phone, monogram, email, LinkedIn, GitHub |
+| `projects` | Titles, summaries, local artwork, roles, week labels, technology tags, live and source URLs |
+| `about` | Biography, experience, education, skills, tool stack, certifications, achievements, decorative cards |
 
 Put your images in `portfolio/public/images/` and use paths such as
-`/images/my-portrait.webp` in the content file. Set each real project's `url`
-and change `demo` to `false` to remove its Preview label.
+`/images/my-portrait.webp` in the content file. Each project's `url` is its live
+frontend and `repositoryUrl` is its source-code location. Leave `url` empty when
+there is no confirmed deployment; the portfolio itself currently has source only.
 
-Personal information is intentionally **not filled in**. Experience and education
-are visibly provisional. No social profile or email address is invented: until
-configured, the relevant controls explain that details are coming soon. Once an
-email is added, Contact reveals it, offers a mailto link, and can copy it.
+The supplied résumé is the source for the public profile, contact details, About
+sections, grades, skills, and awards. The original PDF is not copied into the
+public site. No employment dates, employers, certificate URLs, or deployment
+URLs have been invented. Contact reveals the supplied email, offers a mailto
+link, and can copy it; About also offers a phone link.
 
-### Reference artwork and fonts
+**Project selection is deliberately separate from the résumé.** Only the three
+projects from this six-week repository are featured. The four-application and
+20+ API endpoint figures in Experience describe the résumé’s broader independent
+work; they are not counts of the projects featured here. One experience entry is
+shown without a fake expansion button; the component still supports longer lists.
 
-The illustrated portrait and project artwork are temporary design-reference
-assets, **not claims about your identity or work**. Fonts currently load from the
-reference site; project artwork loads from Dribbble, and moodboard photography
-loads from Unsplash. These external resources require network access. Image
-failures use `public/images/placeholder.svg`; fonts have system fallbacks.
+### Artwork and fonts
 
-Replace the demo imagery with your own assets before publishing your personal
-portfolio, and use only images/fonts you have permission to publish. The site
+The hero uses an original **PJ initials graphic** because no headshot was supplied.
+All three project covers are locally stored, original SVG illustrations with
+visible “Illustrative project overview” captions, not purported screenshots.
+The unrelated reference portrait and Dribbble project images have been removed.
+Fonts still load from the reference site, and decorative moodboard photography
+loads from Unsplash. Those resources require network access. Image failures use
+`public/images/placeholder.svg`; fonts have system fallbacks.
+
+You can replace the monogram and concept covers with a headshot and actual
+project screenshots later. Use only assets you have permission to publish. The site
 is a new implementation of the reference's layout and visual style, not its
 original Next.js source. Its animation implementation is an approximation, not
 a verified pixel-for-pixel copy.
@@ -73,8 +87,9 @@ npm run build
 npm audit --omit=dev
 ```
 
-Verified on this rebuild: **17 interaction tests passed**, production build passed,
-and **0 production dependency vulnerabilities** reported by npm audit.
+Verified after personalization: **21 interaction tests passed** and the production
+build passed. The dependency set is unchanged; the earlier rebuild’s production
+audit reported 0 vulnerabilities. Run the audit command above for a fresh report.
 
 Browser-level checks use Playwright:
 
@@ -84,8 +99,9 @@ npm run test:e2e
 ```
 
 The tests start a separate production preview on port `4186` and cover all three
-routes, navigation, theme persistence, contact placeholders, About controls,
-image loading/fallbacks, and horizontal overflow at **1280, 768, 390, and 310 px**.
+routes, navigation, theme persistence, configured contact links, résumé sections,
+project selection/links, About controls, image loading/fallbacks, and horizontal
+overflow at **1280, 768, 390, and 310 px**.
 All **8 browser tests passed** using the installed Microsoft Edge browser:
 
 ```bash

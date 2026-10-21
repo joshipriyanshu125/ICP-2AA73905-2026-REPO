@@ -168,13 +168,62 @@
   overflow-wrap: anywhere;
 }
 
-.project-card__preview {
+.project-card__preview,
+.project-card__week {
   flex-shrink: 0;
   margin-left: auto;
   padding-right: 4px;
   color: var(--muted-text);
   font-size: 11px;
   line-height: 1.4;
+}
+
+.project-card__caption {
+  margin: 8px 4px 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--muted-text);
+}
+
+.project-card__technologies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-block: 4px;
+}
+
+.project-card__technologies li {
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--muted-text);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+
+.project-card__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.project-card__links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 36px;
+  padding-block: 8px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.project-card__links a:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
 
 .project-card__image-wrap {
@@ -225,7 +274,7 @@
   opacity: 0.5;
 }
 
-.project-card--linked:focus-visible {
+.project-card__links a:focus-visible {
   outline: 2px solid var(--foreground);
   outline-offset: 4px;
 }

@@ -9,7 +9,7 @@ export default function Footer() {
   const socialLinks = [
     { label: 'Email', icon: 'mail', url: profile.email ? `mailto:${profile.email}` : '' },
     { label: 'LinkedIn', icon: 'linkedin', url: profile.socials.linkedin },
-    { label: 'X', icon: 'x', url: profile.socials.x },
+    { label: 'GitHub', icon: 'github', url: profile.socials.github },
   ];
 
   return <footer className="connect container" aria-labelledby="connect-heading">
@@ -33,7 +33,7 @@ export default function Footer() {
           </div>
           <div className="signature-text">
             <p>{new Date().getFullYear()} © Built with React & Vite</p>
-            <span>{profile.name} · Portfolio preview</span>
+            <span>{profile.name} · MERN Stack Developer</span>
           </div>
           {notice && <p className="social-notice" role="status">{notice}</p>}
         </div>

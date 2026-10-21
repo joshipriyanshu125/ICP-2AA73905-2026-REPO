@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600" role="img" aria-labelledby="title desc">
+  <title id="title">Illustrative overview of Personal Portfolio</title>
+  <desc id="desc">Original illustrative artwork showing a charcoal portfolio concept for Priyanshu Joshi, with a PJ monogram, a MERN developer and AI enthusiast introduction, and three project cards. This is not an application screenshot.</desc>
+  <defs>
+    <linearGradient id="charcoal" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#30332f"/>
+      <stop offset="1" stop-color="#1f221f"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-15%" width="120%" height="140%">
+      <feDropShadow dx="0" dy="15" stdDeviation="16" flood-color="#080a08" flood-opacity=".3"/>
+    </filter>
+  </defs>
+  <rect width="800" height="600" fill="url(#charcoal)"/>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <text x="48" y="66" fill="#eeeee7" font-family="Georgia, 'Times New Roman', serif" font-size="34">Personal Portfolio</text>
+    <text x="49" y="94" fill="#aeb3a9" font-size="14">A considered space for the work.</text>
+    <rect x="666" y="46" width="86" height="32" rx="16" fill="none" stroke="#5d6559"/>
+    <text x="709" y="66" fill="#bdc4b5" text-anchor="middle" font-size="11" letter-spacing="1">WEEK 6</text>
+    <rect x="44" y="132" width="712" height="384" rx="20" fill="#181c18" stroke="#41473e" filter="url(#shadow)"/>
+    <circle cx="86" cy="173" r="17" fill="#353d31"/>
+    <text x="85" y="178" fill="#d6dfcd" font-family="Georgia, 'Times New Roman', serif" font-size="16" text-anchor="middle">PJ</text>
+    <text x="114" y="177" fill="#cdd2c7" font-size="12">Priyanshu Joshi</text>
+    <g fill="#9ca795" font-size="11">
+      <text x="512" y="177" fill="#e1e7da">Work</text>
+      <text x="564" y="177">About</text>
+      <text x="621" y="177">Contact</text>
+    </g>
+    <rect x="692" y="160" width="39" height="24" rx="12" fill="#353d31"/>
+    <circle cx="719" cy="172" r="8" fill="#c4d0ba"/>
+    <path d="M68 201h664" stroke="#30362d"/>
+    <text x="80" y="242" fill="#9aa88e" font-size="10" letter-spacing="1.8">PRIYANSHU JOSHI</text>
+    <g fill="#eef0e7" font-family="Georgia, 'Times New Roman', serif" font-size="32">
+      <text x="79" y="286">MERN developer &amp;</text>
+      <text x="79" y="326">AI enthusiast</text>
+    </g>
+    <text x="80" y="356" fill="#a4ad9c" font-size="12">Building AI-powered full-stack web apps.</text>
+    <text x="80" y="377" fill="#788572" font-size="11">Bhimtal, Uttarakhand, India</text>
+    <rect x="548" y="219" width="166" height="166" rx="22" fill="#2c3329" stroke="#414c3b"/>
+    <g transform="translate(563 230) scale(.17)">
+      <circle cx="400" cy="400" r="324" fill="none" stroke="#64705b" stroke-width="4"/>
+      <g fill="none" stroke="#d5ddcb" stroke-width="22" stroke-linecap="square" stroke-linejoin="round">
+        <path d="M270 548V252h81c58 0 88 31 88 77s-30 77-88 77h-81"/>
+        <path d="M526 252v218c0 57-25 85-68 85-32 0-57-19-65-48"/>
+      </g>
+      <g stroke="#d5ddcb" stroke-width="10">
+        <path d="M242 252h52M240 548h61M492 252h68"/>
+      </g>
+    </g>
+    <text x="80" y="411" fill="#8e9a83" font-size="10" letter-spacing="1.2">SELECTED WORK</text>
+    <g>
+      <rect x="80" y="426" width="202" height="66" rx="9" fill="#3d3b31"/>
+      <rect x="294" y="426" width="202" height="66" rx="9" fill="#2c3a40"/>
+      <rect x="508" y="426" width="206" height="66" rx="9" fill="#30392e"/>
+      <text x="95" y="451" fill="#e1d8c2" font-size="12">TaskFlow</text>
+      <text x="309" y="451" fill="#c7dce6" font-size="12">Weather Dashboard</text>
+      <text x="523" y="451" fill="#cedac4" font-size="12">Personal Portfolio</text>
+      <text x="95" y="474" fill="#a89c82" font-size="10">WEEKS 2–3</text>
+      <text x="309" y="474" fill="#90abb8" font-size="10">WEEKS 4–5</text>
+      <text x="523" y="474" fill="#93a486" font-size="10">WEEK 6</text>
+      <g fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m256 448 9-9m-8 0h8v8" stroke="#b2a588"/>
+        <path d="m470 448 9-9m-8 0h8v8" stroke="#98b3bf"/>
+        <path d="m688 448 9-9m-8 0h8v8" stroke="#9fb38e"/>
+      </g>
+    </g>
+    <text x="48" y="557" fill="#8b9980" font-size="10" letter-spacing="1.4">ORIGINAL ILLUSTRATIVE ARTWORK</text>
+    <text x="752" y="557" fill="#8b9980" font-size="11" text-anchor="end">03 / FRONTEND</text>
+  </g>
+</svg>

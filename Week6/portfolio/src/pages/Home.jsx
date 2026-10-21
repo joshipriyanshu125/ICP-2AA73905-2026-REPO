@@ -53,7 +53,7 @@ export default function Home() {
             My projects
           </h2>
           <p className="projects-section-heading__intro">
-            Project previews, experiments, and ideas — with room for your own story.
+            Full-stack applications and thoughtful interfaces built during my six-week web development journey.
           </p>
         </Reveal>
 

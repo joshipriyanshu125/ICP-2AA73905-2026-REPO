@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600" role="img" aria-labelledby="title desc">
+  <title id="title">Illustrative overview of Weather Dashboard</title>
+  <desc id="desc">Original illustrative artwork with a blue weather interface, a cloud, an hourly trend chart, and a five-day forecast. All weather values are sample data, not a live forecast or application screenshot.</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#edf2f6"/>
+      <stop offset="1" stop-color="#d7e3ee"/>
+    </linearGradient>
+    <linearGradient id="conditions" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#416b91"/>
+      <stop offset="1" stop-color="#24496e"/>
+    </linearGradient>
+    <linearGradient id="area" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#7da7cc" stop-opacity=".45"/>
+      <stop offset="1" stop-color="#7da7cc" stop-opacity=".03"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-15%" width="120%" height="140%">
+      <feDropShadow dx="0" dy="15" stdDeviation="16" flood-color="#1c3853" flood-opacity=".15"/>
+    </filter>
+  </defs>
+  <rect width="800" height="600" fill="url(#sky)"/>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <text x="48" y="66" fill="#263f59" font-family="Georgia, 'Times New Roman', serif" font-size="34">Weather Dashboard</text>
+    <text x="49" y="94" fill="#6c8296" font-size="14">A clearer view of the day.</text>
+    <rect x="646" y="46" width="106" height="32" rx="16" fill="none" stroke="#adc1d2"/>
+    <text x="699" y="66" fill="#5d7892" text-anchor="middle" font-size="11" letter-spacing="1">WEEKS 4–5</text>
+    <rect x="44" y="132" width="712" height="384" rx="20" fill="#1e354d" filter="url(#shadow)"/>
+    <rect x="60" y="148" width="248" height="352" rx="13" fill="url(#conditions)"/>
+    <text x="82" y="179" fill="#c2d6e6" font-size="10" letter-spacing="1.5">CITY WEATHER</text>
+    <text x="82" y="213" fill="#f4f8fc" font-size="24" font-weight="600">Bhimtal</text>
+    <path d="m270 191 3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1Z" fill="none" stroke="#cbdeeb" stroke-width="1.5" stroke-linejoin="round"/>
+    <text x="82" y="236" fill="#c2d6e6" font-size="12">Clouds with a little sunshine</text>
+    <circle cx="240" cy="283" r="25" fill="#e1d5a5"/>
+    <path d="M209 315c-15 0-24-9-24-21 0-13 10-23 23-23 4-15 16-24 31-24 20 0 35 15 35 35 12 1 21 8 21 17 0 10-8 16-21 16Z" fill="#e3edf5"/>
+    <path d="M209 315h65c13 0 21-6 21-16" fill="none" stroke="#c0d5e5" stroke-width="3" stroke-linecap="round"/>
+    <text x="80" y="324" fill="#f3f8fc" font-size="64" font-weight="300">24°</text>
+    <text x="84" y="351" fill="#ccdeeb" font-size="12">Feels like 25°</text>
+    <path d="M82 374h204" stroke="#86a7c2" stroke-opacity=".35"/>
+    <text x="83" y="402" fill="#b6cfe2" font-size="10" letter-spacing=".8">HUMIDITY</text>
+    <text x="199" y="402" fill="#b6cfe2" font-size="10" letter-spacing=".8">WIND</text>
+    <text x="82" y="429" fill="#f2f7fb" font-size="21">68%</text>
+    <text x="199" y="429" fill="#f2f7fb" font-size="21">8<tspan font-size="11"> km/h</tspan></text>
+    <rect x="82" y="453" width="204" height="25" rx="7" fill="#e5eff8" fill-opacity=".09"/>
+    <text x="184" y="470" fill="#c3d9e9" font-size="10" text-anchor="middle">ILLUSTRATIVE CONDITIONS</text>
+    <rect x="324" y="148" width="416" height="352" rx="13" fill="#f0f5f9"/>
+    <text x="346" y="180" fill="#2c4a66" font-size="18" font-weight="600">Hourly outlook</text>
+    <circle cx="705" cy="173" r="7" fill="none" stroke="#7797b3" stroke-width="1.5"/>
+    <path d="m710 178 5 5" stroke="#7797b3" stroke-width="1.5" stroke-linecap="round"/>
+    <text x="346" y="204" fill="#8198ac" font-size="10" letter-spacing="1">TEMPERATURE TREND</text>
+    <g stroke="#d8e4ee" stroke-dasharray="3 5">
+      <path d="M346 232h370M346 276h370M346 320h370"/>
+    </g>
+    <path d="M350 297C378 295 389 269 421 264S459 237 492 242s42 29 72 29 42-20 73-9 48 28 73 27V326H350Z" fill="url(#area)"/>
+    <path d="M350 297C378 295 389 269 421 264S459 237 492 242s42 29 72 29 42-20 73-9 48 28 73 27" fill="none" stroke="#5e8db6" stroke-width="3" stroke-linecap="round"/>
+    <g fill="#f0f5f9" stroke="#5e8db6" stroke-width="2">
+      <circle cx="350" cy="297" r="4"/><circle cx="421" cy="264" r="4"/>
+      <circle cx="492" cy="242" r="4"/><circle cx="564" cy="271" r="4"/>
+      <circle cx="637" cy="262" r="4"/><circle cx="710" cy="289" r="4"/>
+    </g>
+    <g fill="#7d95a9" font-size="10" text-anchor="middle">
+      <text x="351" y="344">08:00</text><text x="421" y="344">10:00</text><text x="492" y="344">12:00</text>
+      <text x="564" y="344">14:00</text><text x="637" y="344">16:00</text><text x="710" y="344">18:00</text>
+    </g>
+    <text x="346" y="376" fill="#516d86" font-size="12" font-weight="600">The next five days</text>
+    <g fill="#e3edf5">
+      <rect x="346" y="390" width="66" height="87" rx="9"/>
+      <rect x="422" y="390" width="66" height="87" rx="9"/>
+      <rect x="498" y="390" width="66" height="87" rx="9"/>
+      <rect x="574" y="390" width="66" height="87" rx="9"/>
+      <rect x="650" y="390" width="66" height="87" rx="9"/>
+    </g>
+    <g fill="#748fa5" font-size="10" text-anchor="middle">
+      <text x="379" y="411">MON</text><text x="455" y="411">TUE</text><text x="531" y="411">WED</text>
+      <text x="607" y="411">THU</text><text x="683" y="411">FRI</text>
+    </g>
+    <g fill="#a3bbcf">
+      <path d="M371 439a6 6 0 0 1 0-12 9 9 0 0 1 17 2 5 5 0 0 1 0 10Z"/>
+      <path d="M447 439a6 6 0 0 1 0-12 9 9 0 0 1 17 2 5 5 0 0 1 0 10Z"/>
+      <path d="M599 439a6 6 0 0 1 0-12 9 9 0 0 1 17 2 5 5 0 0 1 0 10Z"/>
+    </g>
+    <g fill="#d1b76c" stroke="#d1b76c" stroke-width="1.5" stroke-linecap="round">
+      <circle cx="531" cy="432" r="6"/><path d="M531 421v-2m0 24v2m11-13h2m-24 0h-2m21-8 2-2m-18 18-2 2m18-2 2 2m-18-18-2-2"/>
+      <circle cx="683" cy="432" r="6"/><path d="M683 421v-2m0 24v2m11-13h2m-24 0h-2m21-8 2-2m-18 18-2 2m18-2 2 2m-18-18-2-2"/>
+    </g>
+    <g fill="#476581" font-size="13" text-anchor="middle">
+      <text x="379" y="463">24°</text><text x="455" y="463">22°</text><text x="531" y="463">26°</text>
+      <text x="607" y="463">23°</text><text x="683" y="463">25°</text>
+    </g>
+    <text x="48" y="557" fill="#6d879e" font-size="10" letter-spacing="1.2">ORIGINAL ILLUSTRATIVE ARTWORK · SAMPLE DATA</text>
+    <text x="752" y="557" fill="#6d879e" font-size="11" text-anchor="end">02 / FULL-STACK</text>
+  </g>
+</svg>

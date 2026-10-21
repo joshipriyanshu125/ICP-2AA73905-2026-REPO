@@ -123,12 +123,32 @@
   text-underline-offset: 5px;
 }
 
-.about-sample-note {
+.about-location {
   margin: 14px 0 0;
   color: var(--muted-text);
   font-size: 12px;
   line-height: 1.6;
   letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+
+.about-contact-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 16px;
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.about-contact-links a {
+  min-width: 0;
+  max-width: 100%;
+  padding-block: 4px;
+  color: var(--foreground);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
 }
 
 .about-biography-copy {
@@ -140,6 +160,7 @@
   font-size: 17px;
   line-height: 1.7;
   letter-spacing: -0.025em;
+  overflow-wrap: anywhere;
 }
 
 .about-biography-copy p {
@@ -184,7 +205,7 @@
 
 .about-resume-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 16px;
   min-height: 64px;
   padding: 8px;
@@ -243,6 +264,30 @@
   font-size: 14px;
   line-height: 1.5;
   letter-spacing: -0.015em;
+  overflow-wrap: anywhere;
+}
+
+.about-row-details > span {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.about-row-period {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.about-row-bullets {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding-left: 16px;
+  color: color-mix(in srgb, var(--foreground) 80%, var(--background));
+  font-size: 13px;
+  line-height: 1.6;
+  list-style: disc;
+  overflow-wrap: anywhere;
 }
 
 .about-detail-dot {
@@ -295,6 +340,7 @@
 }
 
 .about-skill {
+  min-width: 0;
   max-width: 100%;
   padding: 8px 16px;
   border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
@@ -304,6 +350,64 @@
   font-size: 14px;
   line-height: 1.45;
   letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+
+.about-panel.about-technical-panel,
+.about-panel.about-list-panel {
+  padding: 20px;
+}
+
+.about-technical-group + .about-technical-group {
+  margin-top: 20px;
+}
+
+.about-group-label {
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+
+.about-technical-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.about-technical-list li {
+  min-width: 0;
+  max-width: 100%;
+  padding: 6px 10px;
+  border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
+  border-radius: 12px;
+  background: var(--background);
+  color: color-mix(in srgb, var(--foreground) 85%, var(--background));
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.about-detail-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding-left: 18px;
+  color: color-mix(in srgb, var(--foreground) 85%, var(--background));
+  font-size: 14px;
+  line-height: 1.65;
+  list-style: disc;
+  overflow-wrap: anywhere;
+}
+
+.about-row-bullets li::marker,
+.about-detail-list li::marker {
+  color: var(--muted-text);
 }
 
 .about-stack-panel {
@@ -363,10 +467,10 @@
   align-content: center;
   align-items: center;
   justify-content: center;
-  gap: 14px 12px;
+  gap: 18px 14px;
   min-width: 0;
   min-height: 180px;
-  padding: 16px 8px;
+  padding: 20px 12px;
 }
 
 .about-stack-chip {
@@ -385,12 +489,17 @@
   box-shadow: 0 2px 3px rgb(0 0 0 / 12%), 0 5px 10px rgb(0 0 0 / 10%);
   font: 500 13px / 1.2 var(--font-sans);
   letter-spacing: -0.015em;
-  white-space: nowrap;
+  text-align: center;
   cursor: grab;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
   transition: transform 160ms ease, box-shadow 160ms ease, filter 160ms ease;
+}
+
+.about-stack-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .about-stack-glyph {
@@ -413,6 +522,11 @@
   height: 20px;
 }
 
+.about-stack-lettermark {
+  font-size: 12px;
+  letter-spacing: -0.04em;
+}
+
 .about-stack-chip:focus-visible {
   z-index: 2;
 }
@@ -424,6 +538,7 @@
   transition: none;
 }
 
+.about-contact-links a:focus-visible,
 .about-expand-button:focus-visible,
 .about-stack-reset:focus-visible,
 .about-stack-chip:focus-visible {
@@ -482,7 +597,27 @@
   }
 
   .about-resume-row {
-    gap: 12px;
+    gap: 10px;
+  }
+
+  .about-row-icon {
+    flex-basis: 40px;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+  }
+
+  .about-row-title {
+    font-size: 16px;
+  }
+
+  .about-row-details {
+    font-size: 13px;
+  }
+
+  .about-panel.about-technical-panel,
+  .about-panel.about-list-panel {
+    padding: 16px;
   }
 
   .about-skills-panel {
@@ -541,6 +676,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .about-photo,
+  .about-photo-flipper,
   .about-expand-button,
   .about-expand-icon,
   .about-stack-reset,

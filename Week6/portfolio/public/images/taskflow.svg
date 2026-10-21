@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600" role="img" aria-labelledby="title desc">
+  <title id="title">Illustrative overview of TaskFlow</title>
+  <desc id="desc">Original illustrative artwork showing a warm task workspace with list cards, a calendar, live updates, and progress indicators. This is a concept cover, not an application screenshot.</desc>
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#f2eee7"/>
+      <stop offset="1" stop-color="#e4dccf"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-15%" width="120%" height="140%">
+      <feDropShadow dx="0" dy="15" stdDeviation="16" flood-color="#66513c" flood-opacity=".12"/>
+    </filter>
+  </defs>
+  <rect width="800" height="600" fill="url(#paper)"/>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <text x="48" y="66" fill="#36322c" font-family="Georgia, 'Times New Roman', serif" font-size="34">TaskFlow</text>
+    <text x="49" y="94" fill="#756b5e" font-size="14">Clear tasks. Connected teams.</text>
+    <rect x="646" y="46" width="106" height="32" rx="16" fill="none" stroke="#c5b9a9"/>
+    <text x="699" y="66" fill="#6c604f" text-anchor="middle" font-size="11" letter-spacing="1">WEEKS 2–3</text>
+    <rect x="44" y="132" width="712" height="384" rx="20" fill="#fbfaf6" filter="url(#shadow)"/>
+    <rect x="60" y="148" width="148" height="352" rx="12" fill="#ede7dd"/>
+    <rect x="78" y="170" width="25" height="25" rx="7" fill="#8b775b"/>
+    <path d="m84 182 4 4 9-10" fill="none" stroke="#fffaf0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="112" y="188" fill="#51473b" font-size="14" font-weight="700">TaskFlow</text>
+    <text x="80" y="237" fill="#817667" font-size="10" letter-spacing="1.2">WORKSPACE</text>
+    <rect x="72" y="253" width="124" height="34" rx="8" fill="#faf7ef"/>
+    <g fill="#615545" font-size="12">
+      <text x="90" y="275">My tasks</text>
+      <text x="90" y="313">Calendar</text>
+      <text x="90" y="351">Overview</text>
+    </g>
+    <path d="M80 431h108" stroke="#d6ccbd"/>
+    <circle cx="89" cy="463" r="12" fill="#d8ccba"/>
+    <text x="89" y="467" fill="#67553e" font-size="10" text-anchor="middle">PJ</text>
+    <text x="109" y="467" fill="#675d4f" font-size="11">My workspace</text>
+    <text x="232" y="181" fill="#39352e" font-size="21" font-weight="600">Today, in focus</text>
+    <circle cx="630" cy="176" r="4" fill="#768967"/>
+    <text x="641" y="180" fill="#788167" font-size="10">LIVE UPDATES</text>
+    <rect x="232" y="201" width="53" height="25" rx="7" fill="#e8decd"/>
+    <text x="258" y="218" fill="#6b5739" font-size="11" text-anchor="middle">List</text>
+    <text x="302" y="218" fill="#877a68" font-size="11">Calendar</text>
+    <g stroke="#e9e3d9" fill="#fffefa">
+      <rect x="232" y="241" width="290" height="59" rx="10"/>
+      <rect x="232" y="311" width="290" height="59" rx="10"/>
+      <rect x="232" y="381" width="290" height="59" rx="10"/>
+    </g>
+    <circle cx="253" cy="267" r="6" fill="none" stroke="#b19b78" stroke-width="2"/>
+    <circle cx="253" cy="337" r="6" fill="#b99569"/>
+    <circle cx="253" cy="407" r="6" fill="#7d8c70"/>
+    <path d="m250 407 2 2 4-5" fill="none" stroke="#ffffff" stroke-width="1.5"/>
+    <g fill="#494036" font-size="13">
+      <text x="269" y="266">Build task views</text>
+      <text x="269" y="336">Connect live updates</text>
+      <text x="269" y="406">Review progress</text>
+    </g>
+    <g fill="#8a7b68" font-size="10">
+      <text x="269" y="284">TO DO</text>
+      <text x="269" y="354">IN PROGRESS</text>
+      <text x="269" y="424">COMPLETED</text>
+    </g>
+    <rect x="542" y="207" width="190" height="233" rx="12" fill="#f0eadf"/>
+    <text x="560" y="233" fill="#65533d" font-size="13" font-weight="600">Calendar view</text>
+    <path d="m702 224-4 4 4 4" fill="none" stroke="#9c8a73" stroke-width="1.5"/>
+    <g fill="#9a8971" font-size="10" text-anchor="middle">
+      <text x="568" y="261">M</text><text x="591" y="261">T</text><text x="614" y="261">W</text>
+      <text x="637" y="261">T</text><text x="660" y="261">F</text><text x="683" y="261">S</text><text x="706" y="261">S</text>
+    </g>
+    <rect x="627" y="304" width="20" height="25" rx="7" fill="#9b825e"/>
+    <g fill="#6d604e" font-size="11" text-anchor="middle">
+      <text x="568" y="291">1</text><text x="591" y="291">2</text><text x="614" y="291">3</text>
+      <text x="637" y="291">4</text><text x="660" y="291">5</text><text x="683" y="291">6</text><text x="706" y="291">7</text>
+      <text x="568" y="321">8</text><text x="591" y="321">9</text><text x="614" y="321">10</text>
+      <text x="637" y="321" fill="#ffffff">11</text><text x="660" y="321">12</text><text x="683" y="321">13</text><text x="706" y="321">14</text>
+      <text x="568" y="351">15</text><text x="591" y="351">16</text><text x="614" y="351">17</text>
+      <text x="637" y="351">18</text><text x="660" y="351">19</text><text x="683" y="351">20</text><text x="706" y="351">21</text>
+    </g>
+    <circle cx="591" cy="360" r="2" fill="#b08a58"/>
+    <circle cx="660" cy="300" r="2" fill="#b08a58"/>
+    <path d="M560 378h154" stroke="#ddd2c1"/>
+    <circle cx="565" cy="404" r="3" fill="#ad8a58"/>
+    <text x="576" y="408" fill="#8b765b" font-size="11">Room for what’s next</text>
+    <text x="232" y="475" fill="#776a58" font-size="11">Task status</text>
+    <rect x="314" y="464" width="418" height="11" rx="5.5" fill="#eae4d8"/>
+    <rect x="314" y="464" width="158" height="11" rx="5.5" fill="#8d9b80"/>
+    <rect x="480" y="464" width="130" height="11" rx="5.5" fill="#c5a374"/>
+    <text x="48" y="557" fill="#8b7b65" font-size="10" letter-spacing="1.4">ORIGINAL ILLUSTRATIVE ARTWORK</text>
+    <text x="752" y="557" fill="#8b7b65" font-size="11" text-anchor="end">01 / FULL-STACK</text>
+  </g>
+</svg>

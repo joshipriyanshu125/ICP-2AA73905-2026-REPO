@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800" role="img" aria-labelledby="title desc">
+  <title id="title">Priyanshu Joshi initials</title>
+  <desc id="desc">An original monochrome PJ monogram, drawn with clean lines inside a fine circular frame.</desc>
+  <rect width="800" height="800" rx="160" fill="#eeede9"/>
+  <rect x="42" y="42" width="716" height="716" rx="130" fill="none" stroke="#d9d8d3"/>
+  <circle cx="400" cy="400" r="278" fill="#f7f6f2" stroke="#cdccc6"/>
+  <circle cx="400" cy="400" r="263" fill="none" stroke="#e2e1db"/>
+  <g fill="none" stroke="#292a28" stroke-width="22" stroke-linecap="square" stroke-linejoin="round">
+    <path d="M270 548V252h81c58 0 88 31 88 77s-30 77-88 77h-81"/>
+    <path d="M526 252v218c0 57-25 85-68 85-32 0-57-19-65-48"/>
+  </g>
+  <g stroke="#292a28" stroke-width="10">
+    <path d="M242 252h52M240 548h61M492 252h68"/>
+  </g>
+  <path d="M366 179h68M366 621h68" stroke="#a7a8a1" stroke-width="2"/>
+  <text x="400" y="706" text-anchor="middle" fill="#73756e" font-family="Arial, Helvetica, sans-serif" font-size="13" letter-spacing="5">PRIYANSHU JOSHI</text>
+</svg>

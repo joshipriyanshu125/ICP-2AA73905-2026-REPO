@@ -11,7 +11,7 @@ export default function Projects() {
           My recent work
         </h1>
         <p className="projects-section-heading__intro">
-          A collection of project previews — a space for your experiments, collaborations, and ideas.
+          TaskFlow, Weather Dashboard, and this portfolio — the work from my six-week web development journey.
         </p>
       </Reveal>
 

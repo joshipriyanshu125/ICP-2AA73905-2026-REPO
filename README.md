@@ -16,6 +16,7 @@
 | [**Week 3**](https://github.com/joshipriyanshu125/ICP-2AA73905-2026-REPO/blob/main/Week3/README.md) | Project 1 Completion & Deployment | **TaskFlow Full Completion**: Polished UI/UX (List & Calendar Views), Status Metric Cards, Redis Pub/Sub + Socket.IO real-time synchronization, 14/14 test pass suite, and production deployment guide. |
 | [**Week 4**](https://github.com/joshipriyanshu125/ICP-2AA73905-2026-REPO/blob/main/Week4/README.md) | Project 2 Start — Weather Dashboard | **Weather Dashboard (MERN)**: OpenWeatherMap API integration (current, forecast, geocoding), current conditions card, hourly strip, recharts charts, multi-day forecast, geolocation search, JWT auth with per-user saved locations, dark/light themes, search history in MongoDB, server-side API proxy, and deployment guide. |
 | [**Week 5**](https://github.com/joshipriyanshu125/ICP-2AA73905-2026-REPO/blob/main/Week5/README.md) | Project 2 Completion — Weather Dashboard | **Weather Dashboard Completion & Live Deployment**: verified Week 4 MERN implementation (OpenWeatherMap proxy, geocoding search, hourly/multi-day forecasts, charts, AI insights with rule-engine fallback, severe-weather alerts, per-user favorites, dark/light themes), 22/22 test pass suite, comprehensive completion report, production deployment guide, and **live deployment on Vercel + Render**. |
+| [**Week 6**](https://github.com/joshipriyanshu125/ICP-2AA73905-2026-REPO/blob/main/Week6/README.md) | Personal Portfolio | **Personal Portfolio**: React + Vite portfolio with project showcases, résumé-based About content, responsive layouts, theme support, and **live deployment on Vercel**. |
 
 ---
 
@@ -64,3 +65,18 @@
 - [Week 5 Project 2 Completion Report](https://github.com/joshipriyanshu125/ICP-2AA73905-2026-REPO/blob/main/Week5/project-2-completion-report.md)
 - [Week 5 Full Technical Documentation](https://github.com/joshipriyanshu125/ICP-2AA73905-2026-REPO/blob/main/Week5/documentation.md)
 - [Week 5 Production Readiness & Go-Live Guide](https://github.com/joshipriyanshu125/ICP-2AA73905-2026-REPO/blob/main/Week5/deployment-guide.md)
+
+---
+
+## 🎨 Project 3: Priyanshu Joshi’s Portfolio (Week 6 — Deployed)
+
+- **Frontend:** React, Vite, responsive layouts, persistent dark/light themes, and accessible navigation.
+- **Content:** Project showcases for TaskFlow, Weather Dashboard, and the portfolio itself, plus résumé-based About and contact sections.
+
+### 🌐 Live Deployment
+
+- **Portfolio:** [https://icp-2-aa-73905-2026-repo.vercel.app/](https://icp-2-aa-73905-2026-repo.vercel.app/)
+
+### Quick Navigation
+
+- [Week 6 README](https://github.com/joshipriyanshu125/ICP-2AA73905-2026-REPO/blob/main/Week6/README.md)

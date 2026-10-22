@@ -4,6 +4,10 @@ A fresh React + Vite portfolio, rebuilt from an empty source directory using
 [rbp-portfolio.vercel.app](https://rbp-portfolio.vercel.app/) as the visual reference.
 Weeks 1–5 are unchanged. The previous Week 6 implementation is no longer used.
 
+## Live deployment
+
+- **Portfolio:** [https://icp-2-aa-73905-2026-repo.vercel.app/](https://icp-2-aa-73905-2026-repo.vercel.app/)
+
 ## Run locally
 
 From `Week6/portfolio`:
@@ -49,7 +53,7 @@ Edit **`portfolio/src/data/portfolio.js`**. This is the single content file:
 Put your images in `portfolio/public/images/` and use paths such as
 `/images/my-portrait.webp` in the content file. Each project's `url` is its live
 frontend and `repositoryUrl` is its source-code location. Leave `url` empty when
-there is no confirmed deployment; the portfolio itself currently has source only.
+there is no confirmed deployment. The portfolio is deployed at [https://icp-2-aa-73905-2026-repo.vercel.app/](https://icp-2-aa-73905-2026-repo.vercel.app/).
 
 The supplied résumé is the source for the public profile, contact details, About
 sections, grades, skills, and awards. The original PDF is not copied into the
@@ -122,4 +126,5 @@ so direct visits and refreshes at `/projects` and `/about` work.
 
 For another static host, serve `dist` and configure unmatched page routes to
 return `index.html`. Deploy at the domain root. No backend, API keys, account
-credentials, or environment variables are needed. No deployment has been made.
+credentials, or environment variables are needed. The current deployment is
+[https://icp-2-aa-73905-2026-repo.vercel.app/](https://icp-2-aa-73905-2026-repo.vercel.app/).

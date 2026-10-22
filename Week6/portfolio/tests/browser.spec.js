@@ -7,6 +7,7 @@ test('navigation, theme, contact and About controls work together', async ({ pag
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('MERN developer &AI enthusiast');
   await expect(page.getByRole('article')).toHaveCount(3);
   await expect(page).toHaveTitle(/Priyanshu Joshi/);
+  await expect(page.getByRole('img', { name: 'Portrait of Priyanshu Joshi' }).first()).toHaveAttribute('src', '/images/priyanshu-portrait.png');
   await page.screenshot({ path: testInfo.outputPath('home-dark.png'), fullPage: true });
   await page.getByRole('button', { name: 'Show email' }).first().click();
   await expect(page.getByRole('link', { name: 'Open email app' })).toHaveAttribute('href', 'mailto:joshipriyanshu125@gmail.com');

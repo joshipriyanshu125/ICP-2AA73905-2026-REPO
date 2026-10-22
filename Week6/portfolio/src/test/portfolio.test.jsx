@@ -18,7 +18,8 @@ describe('portfolio pages', () => {
     render(<App pathname="/" />);
     expect(screen.getAllByRole('article')).toHaveLength(3);
     expect(screen.getByText(/I’m Priyanshu/)).toBeTruthy();
-    expect(screen.getByRole('img', { name: 'Priyanshu Joshi initials' }).getAttribute('src')).toBe('/images/priyanshu-monogram.svg');
+    expect(screen.getByRole('img', { name: 'Portrait of Priyanshu Joshi' }).getAttribute('src')).toBe('/images/priyanshu-portrait.png');
+    expect(screen.getByRole('img', { name: 'Portrait of Priyanshu Joshi' }).closest('.home-hero__portrait')).toBeTruthy();
     expect(screen.getByRole('link', { name: 'View My Work' }).getAttribute('href')).toBe('/projects');
     expect(screen.getByRole('link', { name: 'View all projects' }).getAttribute('href')).toBe('/projects');
     expect(screen.queryByText('Josh Mercer')).toBeNull();

@@ -28,7 +28,7 @@ export default function ProjectCard({ project }) {
             className="project-card__image"
             src={project.image || '/images/placeholder.svg'}
             alt={project.imageAlt || `${project.name} preview`}
-            loading="lazy"
+            loading="eager"
             decoding="async"
             onError={handleImageError}
           />

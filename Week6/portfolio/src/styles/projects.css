@@ -61,6 +61,18 @@
   margin-inline: auto;
 }
 
+/* Matches the reference portrait treatment: a soft blur/scale-in reveal. */
+.home-hero__portrait.reveal {
+  filter: blur(20px);
+  transform: scale(0.7);
+  transition: opacity 900ms ease var(--reveal-delay, 0ms), transform 900ms cubic-bezier(.22,1,.36,1) var(--reveal-delay, 0ms), filter 900ms ease var(--reveal-delay, 0ms);
+}
+
+.home-hero__portrait.reveal.is-visible {
+  filter: blur(0);
+  transform: none;
+}
+
 .home-hero__frame {
   padding: 6px;
   border: 1px solid var(--border);
@@ -382,5 +394,10 @@
   .project-card:hover,
   .project-card:hover .project-card__image {
     transform: none;
+  }
+
+  .home-hero__portrait.reveal,
+  .home-hero__portrait.reveal.is-visible {
+    filter: none;
   }
 }

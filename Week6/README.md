@@ -21,7 +21,7 @@ npm run dev -- --port 5176 --strictPort
 
 ## Included
 
-- **Home:** Priyanshu’s introduction, a monochrome PJ monogram, three repository
+- **Home:** Priyanshu’s introduction, his supplied portrait, three repository
   projects, project navigation, and a shared contact footer.
 - **Projects:** TaskFlow (Weeks 2–3), Weather Dashboard (Weeks 4–5), and Personal
   Portfolio (Week 6), with technology tags and source-code links. TaskFlow and
@@ -42,7 +42,7 @@ Edit **`portfolio/src/data/portfolio.js`**. This is the single content file:
 
 | Export | Content |
 | --- | --- |
-| `profile` | Name, headline, introduction, location, phone, monogram, email, LinkedIn, GitHub |
+| `profile` | Name, headline, introduction, location, phone, portrait, email, LinkedIn, GitHub |
 | `projects` | Titles, summaries, local artwork, roles, week labels, technology tags, live and source URLs |
 | `about` | Biography, experience, education, skills, tool stack, certifications, achievements, decorative cards |
 
@@ -65,16 +65,17 @@ shown without a fake expansion button; the component still supports longer lists
 
 ### Artwork and fonts
 
-The hero uses an original **PJ initials graphic** because no headshot was supplied.
-All three project covers are locally stored, original SVG illustrations with
+The hero uses the portrait image supplied in this chat. It is presented in the
+reference’s grayscale, rounded frame with a blur/scale-in entrance effect. All
+three project covers are locally stored, original SVG illustrations with
 visible “Illustrative project overview” captions, not purported screenshots.
 The unrelated reference portrait and Dribbble project images have been removed.
 Fonts still load from the reference site, and decorative moodboard photography
 loads from Unsplash. Those resources require network access. Image failures use
 `public/images/placeholder.svg`; fonts have system fallbacks.
 
-You can replace the monogram and concept covers with a headshot and actual
-project screenshots later. Use only assets you have permission to publish. The site
+You can replace the portrait and concept covers with newer assets later. Use only
+assets you have permission to publish. The site
 is a new implementation of the reference's layout and visual style, not its
 original Next.js source. Its animation implementation is an approximation, not
 a verified pixel-for-pixel copy.

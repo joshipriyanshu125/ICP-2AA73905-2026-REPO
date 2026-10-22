@@ -7,8 +7,8 @@ export const profile = {
   description: 'Final-year Computer Science student building AI-powered full-stack web apps.',
   location: 'Bhimtal, Uttarakhand, India',
   phone: '+91 9105131502',
-  portrait: '/images/priyanshu-monogram.svg',
-  portraitAlt: 'Priyanshu Joshi initials',
+   portrait: '/images/priyanshu-portrait.png',
+   portraitAlt: 'Portrait of Priyanshu Joshi',
   email: 'joshipriyanshu125@gmail.com',
   socials: {
     linkedin: 'https://www.linkedin.com/in/priyanshu-joshi0105',
@@ -54,7 +54,7 @@ export const projects = [
     description: 'Built in Week 6 with React and Vite, this frontend-only portfolio brings together responsive pages, dark and light themes with persistent preferences, and keyboard interactions. It presents the projects from this six-week repository without a backend.',
     role: 'Frontend Developer', year: '2026',
     image: '/images/portfolio.svg',
-    imageAlt: 'Illustrative overview of Personal Portfolio with a charcoal interface and PJ monogram',
+     imageAlt: 'Illustrative overview of Personal Portfolio with a charcoal interface and Priyanshu portrait',
     aspectRatio: '4 / 3', url: '', demo: false,
     repositoryUrl: 'https://github.com/joshipriyanshu125/ICP-2AA73905-2026-REPO/tree/main/Week6/portfolio',
     weekLabel: 'Week 6',
@@ -152,7 +152,7 @@ export const about = {
   photos: [
     { src: 'https://images.unsplash.com/photo-1497250681960-ef046c08a56e?w=480&auto=format&fit=crop&q=80', alt: 'Green leaves — decorative stock moodboard photo' },
     { src: 'https://images.unsplash.com/photo-1493246507139-91e8fad9978e?w=480&auto=format&fit=crop&q=80', alt: 'Mountain lake — decorative stock moodboard photo' },
-    { src: '/images/priyanshu-monogram.svg', alt: 'Priyanshu Joshi initials' },
+     { src: '/images/priyanshu-portrait.png', alt: 'Portrait of Priyanshu Joshi' },
     { src: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=480&auto=format&fit=crop&q=80', alt: 'Forest sunlight — decorative stock moodboard photo' },
     { src: 'https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=480&auto=format&fit=crop&q=80', alt: 'Ocean waves — decorative stock moodboard photo' },
     { src: 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=480&auto=format&fit=crop&q=80', alt: 'Creative workspace — decorative stock moodboard photo' },
